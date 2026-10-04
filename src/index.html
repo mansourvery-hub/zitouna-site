@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en" class="no-js">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Zitouna: know your olives before the expert does</title>
+<meta name="description" content="A free olive-grove companion for Android. Count fifty olives, know when to pick, and check what the mill gave you. Works offline, no account.">
+<link rel="canonical" href="{{SITE}}/">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#F5F1E2" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#191A11" media="(prefers-color-scheme: dark)">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Zitouna">
+<meta property="og:title" content="Zitouna: know your olives before the expert does">
+<meta property="og:description" content="Count fifty olives, know when to pick, and check what the mill gave you. Free, offline, no account.">
+<meta property="og:url" content="{{SITE}}/">
+<meta property="og:image" content="{{SITE}}/og.png">
+<meta property="og:image:alt" content="Zitouna wordmark beside four bands in the ripening colours: green, gold, wine and black.">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+{{FONTS_LINK}}<link rel="stylesheet" href="/styles.css">
+<link rel="stylesheet" href="/demo.css">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Zitouna","alternateName":"الزيتونة","description":"A free, offline olive-grove companion: ripeness counts, harvest logs and mill yield.","operatingSystem":"Android 8.0 or newer","applicationCategory":"LifestyleApplication","softwareVersion":"{{VERSION}}","inLanguage":["en","fr","ar"],"offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"url":"{{SITE}}/"}</script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header><div class="w"><a class="logo" href="#top" aria-label="Zitouna, back to top">Zitouna<span lang="ar" dir="rtl">الزيتونة</span></a><a class="btn sm" href="{{DOWNLOAD_URL}}">Download</a></div></header>
+<main id="main">
+<section class="hero" id="top" data-stage="hero"><div class="w">
+<h1>Know your olives before the expert does.</h1>
+<p class="lead">A free olive-grove companion that works without a connection or an account.</p>
+<div id="demo"><noscript><p class="note">The interactive demo needs JavaScript.</p></noscript></div>
+<details class="diff"><summary>How this demo differs from the app</summary><ul>
+<li>It shows the parcel screen only. The app's welcome screen, My Trees list, Harvest and Years tabs, settings, backup and map are not included.</li>
+<li>The ripeness rules (weights, rounding, Chemlali thresholds) and the rendement formula are the app's. The gauge geometry and the theme colours follow the app's code, in the light or dark theme your device uses.</li>
+<li>Nothing is stored. Refresh the page and your checks are gone.</li>
+<li>The app is still changing, so layout and wording here may differ from the current release.</li>
+<li>Not reproduced: the gauge animation, the olive-branch artwork inside the gauge, the camera hint, the app's exact date format, and the app's Mill form fields (labels here are my own).</li>
+<li>In the light theme the stage chips use dark text with a coloured dot, because the app's own chip colours are too pale to read comfortably.</li>
+<li>Always uses the Chemlali window, and the parcel is an example.</li></ul></details>
+<p><a class="btn" id="dl" href="{{DOWNLOAD_URL}}">Download</a></p>
+<p class="note">For Android 8 or newer. Early release {{VERSION}}.</p>
+</div></section>
+
+<section class="how s-g" data-stage="g" aria-labelledby="how"><div class="w"><h2 id="how">Fifty olives. Four colours. One answer.</h2>
+<ol><li><div><h3>Count</h3><p>Take a sample of about fifty olives from your parcel. Tap Green, Turning, Purple or Black for each one.</p></div></li>
+<li><div><h3>Read</h3><p>The gauge says Too Early, Soon, Pick Now or Getting Late, set for your variety. Twelve varieties are built in.</p></div></li>
+<li><div><h3>Log</h3><p>Record the kilos picked each day. Before pressing, you see an oil estimate as a range.</p></div></li>
+<li><div><h3>Compare</h3><p>When the mill returns your oil, enter it and see the yield against last year and against your own estimate.</p></div></li></ol></div></section>
+
+<section class="mill s-y" data-stage="y" aria-labelledby="mill"><div class="w"><div><h2 id="mill">What the mill gave you, in one number.</h2><p>Enter the olives you delivered and the oil you received. Zitouna shows the extraction rendement, then lines it up against last year and your own estimate.</p></div>
+<div class="calc"><label>Olives delivered, kg<input id="kg" type="number" inputmode="decimal" min="0" value="1000"></label><label>Oil received, litres<input id="l" type="number" inputmode="decimal" min="0" value="180"></label>
+<div class="out" aria-live="polite"><small>Extraction rendement</small><b id="rd">16.49 %</b><small id="wk">180 L &times; 0.916 = 164.88 kg of oil, from 1000 kg of olives</small></div></div></div></section>
+
+<section class="who s-w" data-stage="w" aria-labelledby="who"><div class="w"><h2 id="who">Made for growers with a phone and a few dozen trees.</h2>
+<div class="pr"><div><h3>Works without a connection</h3><p>Parcels, counts, harvest and mill logs all work offline.</p></div>
+<div><h3>Ranges, not false precision</h3><p>Oil estimates always come as a range. The year view says it in one plain sentence.</p></div>
+<div><h3>Stays on your phone</h3><p>No account. Back up to a file and send it yourself, by WhatsApp or email.</p></div>
+<div><h3>English, Français, <span lang="ar" dir="rtl">العربية</span></h3><p>With full right-to-left layout, and kilograms or quintals.</p></div></div></div></section>
+
+<section class="end s-k" data-stage="k" aria-labelledby="faq"><div class="w"><div><h2 id="faq">Before you download.</h2><a class="btn" href="{{DOWNLOAD_URL}}">Download</a><p class="note">Android only. Like it? <a href="{{SUPPORT_URL}}">Support Zitouna</a>.</p></div>
+<div><details><summary>Do I need an account?</summary><p>No. Zitouna opens straight to your parcels and there is no sign-in.</p></details>
+<details><summary>Does it work offline?</summary><p>Yes. Parcels, ripeness checks, harvest and mill logs, and the year view all work with no connection.</p></details>
+<details><summary>Which phones does it run on?</summary><p>Android 8 or newer. There is no iPhone version.</p></details>
+<details><summary>How accurate is the gauge?</summary><p>It is guidance, not a lab test. It points the way for your variety, so combine it with what you see in the grove.</p></details>
+<details><summary>Where is my data?</summary><p>On your phone. A backup is a file you choose to send, for example by WhatsApp or email.</p></details></div></div>
+<div class="w"><footer><p>&copy; {{OPERATOR}}. Zitouna is an independent app.</p><p>This site sets no cookies, uses no analytics and loads nothing from other websites.</p><p>Contact: {{CONTACT}}. <a href="{{SUPPORT_URL}}">Support Zitouna</a>.</p></footer></div></section>
+</main>
+<script type="module" src="/main.js"></script>
+<script type="module" src="/demo.js"></script>
+</body></html>
