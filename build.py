@@ -19,7 +19,13 @@ def sub(text):
 if cfg["SITE"] == "https://example.com": warn.append("SITE is still example.com: canonical, sitemap and social URLs are wrong")
 
 # 2. fonts: only emit @font-face for files that exist (self-hosted, no third-party requests)
-FONTS = [("Zilla Slab", 500, "ZillaSlab-Medium.woff2"), ("Zilla Slab", 700, "ZillaSlab-Bold.woff2"), ("Manrope", "400 700", "Manrope-Variable.woff2")]
+# Note: Manrope uses static weights (Regular 400, Bold 700) since variable font not available
+FONTS = [
+    ("Zilla Slab", 500, "ZillaSlab-Medium.woff2"),
+    ("Zilla Slab", 700, "ZillaSlab-Bold.woff2"),
+    ("Manrope", 400, "Manrope-Regular.woff2"),
+    ("Manrope", 700, "Manrope-Bold.woff2"),
+]
 faces = [f"@font-face{{font-family:'{n}';font-weight:{w};font-display:swap;src:url(/fonts/{f}) format('woff2')}}" for n, w, f in FONTS if (SRC / "fonts" / f).exists()]
 for n, w, f in FONTS:
     if not (SRC / "fonts" / f).exists(): warn.append(f"font file missing: src/fonts/{f} (system fallback used)")
@@ -32,7 +38,7 @@ html = sub((SRC / "index.html").read_text()).replace("{{FONTS_LINK}}", '<link re
 if faces: (DIST / "fonts.css").write_text("\n".join(faces))
 css = re.sub(r"\s+", " ", re.sub(r"/\*.*?\*/", "", (SRC / "styles.css").read_text(), flags=re.S))
 (DIST / "styles.css").write_text(css)
-for f in ("main.js", "logic.js", "gauge.js", "demo.js", "demo.css", "favicon.svg"): shutil.copy(SRC / f, DIST / f)
+for f in ("main.js", "logic.js", "gauge.js", "demo.js", "demo.css", "favicon.png"): shutil.copy(SRC / f, DIST / f)
 
 # 3. SEO and security files
 S = cfg["SITE"]
@@ -85,7 +91,12 @@ class P(HTMLParser):
         if t in ("a", "button") and not a.get("class", "").startswith("skip") or t in ("a", "button"): s.nm.append([a.get("aria-label", ""), ""])
         if t == "img" and "alt" not in a: s.imgs += 1
         for k in ("href", "src"):
-            if k in a and t != "meta" and a.get("rel") != "canonical": s.refs.append(a[k])
+            if k in a and t != "meta" and a.get("rel") != "canonical":
+                # Allow external hrefs on anchor tags (navigation), block external resource loads
+                if k == "href" and t == "a":
+                    pass  # navigation links are fine
+                else:
+                    s.refs.append(a[k])
         if "style" in a: warn.append(f"inline style on <{t}> (blocked by CSP)")
         if t == "script" and a.get("type") == "application/ld+json": s.ld = True
     def handle_data(s, x):
