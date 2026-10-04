@@ -13,15 +13,17 @@ parsed = urlparse(cfg["SITE"])
 BASE_PATH = parsed.path if parsed.path != "/" else ""
 warn = []
 
-# 1. substitute config; empty values remove their footer lines entirely
+# 1. substitute config; empty or placeholder values remove their footer lines entirely
 def sub(text):
     for k, v in cfg.items():
         if not v and k in ("DOWNLOAD_URL", "SUPPORT_URL"): v = "#"; warn.append(f"{k} not set: links point to '#'")
         if not v and k in ("OPERATOR", "CONTACT"): v = ""  # empty string removes the line
         text = text.replace("{{%s}}" % k, v)
-    # Remove footer lines that were emptied
-    text = re.sub(r'<p>&copy; \s*\. Zitouna is an independent app\.</p>\s*', '', text)
-    text = re.sub(r'<p>Contact: \s*\. <a href="[^"]*">Support Zitouna</a>\.</p>\s*', '', text)
+    # Remove footer lines that were emptied (empty or placeholder text)
+    text = re.sub(r'<p>&copy; \s*\[operator to be supplied\]\. Zitouna is an independent app\.</p>\s*', '', text)
+    text = re.sub(r'<p>&copy; \s*\.[ ]*Zitouna is an independent app\.</p>\s*', '', text)
+    text = re.sub(r'<p>Contact: \s*\[contact to be supplied\]\. <a href="[^"]*">Support Zitouna</a>\.</p>\s*', '', text)
+    text = re.sub(r'<p>Contact: \s*\.\s*<a href="[^"]*">Support Zitouna</a>\.</p>\s*', '', text)
     return text
 if cfg["SITE"] == "https://example.com": warn.append("SITE is still example.com: canonical, sitemap and social URLs are wrong")
 
