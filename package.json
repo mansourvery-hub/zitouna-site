@@ -1,0 +1,25 @@
+{
+  "name": "zitouna-source",
+  "version": "1.0.0",
+  "description": "Static, no dependencies, no cookies, no analytics, no third-party requests.",
+  "main": "index.js",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mansourvery-hub/zitouna-site.git"
+  },
+  "keywords": [],
+  "type": "module",
+  "bugs": {
+    "url": "https://github.com/mansourvery-hub/zitouna-site/issues"
+  },
+  "homepage": "https://github.com/mansourvery-hub/zitouna-site#readme",
+  "devDependencies": {
+    "@playwright/test": "^1.63.0"
+  }
+}
