@@ -3,10 +3,14 @@
 import json, re, shutil, sys, zipfile
 from html.parser import HTMLParser
 from pathlib import Path
+from urllib.parse import urlparse
 
 ROOT = Path(__file__).parent; SRC = ROOT / "src"; DIST = ROOT / "dist"
 cfg = json.loads((ROOT / "site.config.json").read_text())
 cfg["SITE"] = cfg["SITE"].rstrip("/")
+# Compute base path for GitHub Pages project sites (e.g., "/zitouna-site" from "https://user.github.io/repo")
+parsed = urlparse(cfg["SITE"])
+BASE_PATH = parsed.path if parsed.path != "/" else ""
 warn = []
 
 # 1. substitute config; unset values stay as visible placeholders
@@ -18,6 +22,14 @@ def sub(text):
     return text
 if cfg["SITE"] == "https://example.com": warn.append("SITE is still example.com: canonical, sitemap and social URLs are wrong")
 
+def prefix(path: str) -> str:
+    """Prefix asset path with BASE_PATH for GitHub Pages subpath."""
+    if not BASE_PATH or path.startswith(("http:", "https:", "//", "data:")):
+        return path
+    if path.startswith("/"):
+        return BASE_PATH + path
+    return BASE_PATH + "/" + path
+
 # 2. fonts: only emit @font-face for files that exist (self-hosted, no third-party requests)
 # Note: Manrope uses static weights (Regular 400, Bold 700) since variable font not available
 FONTS = [
@@ -26,7 +38,7 @@ FONTS = [
     ("Manrope", 400, "Manrope-Regular.woff2"),
     ("Manrope", 700, "Manrope-Bold.woff2"),
 ]
-faces = [f"@font-face{{font-family:'{n}';font-weight:{w};font-display:swap;src:url(/fonts/{f}) format('woff2')}}" for n, w, f in FONTS if (SRC / "fonts" / f).exists()]
+faces = [f"@font-face{{font-family:'{n}';font-weight:{w};font-display:swap;src:url({prefix('/fonts/' + f)}) format('woff2')}}" for n, w, f in FONTS if (SRC / "fonts" / f).exists()]
 for n, w, f in FONTS:
     if not (SRC / "fonts" / f).exists(): warn.append(f"font file missing: src/fonts/{f} (system fallback used)")
 
@@ -35,12 +47,30 @@ if DIST.exists(): shutil.rmtree(DIST)
 for f in (SRC / "fonts").glob("*.woff2"): shutil.copy(f, DIST / "fonts" / f.name)
 # Disable Jekyll on GitHub Pages
 (DIST / ".nojekyll").write_text("")
-html = sub((SRC / "index.html").read_text()).replace("{{FONTS_LINK}}", '<link rel="stylesheet" href="/fonts.css">\n' if faces else "")
+html = sub((SRC / "index.html").read_text()).replace("{{FONTS_LINK}}", f'<link rel="stylesheet" href="{prefix("/fonts.css")}">\n' if faces else "")
+# Prefix all asset paths in HTML (href/src starting with / but not already prefixed)
+def prefix_asset(match):
+    path = match.group(2)
+    if path.startswith(BASE_PATH + "/"):
+        return match.group(0)  # Already prefixed
+    return match.group(1) + '="' + prefix(path) + '"'
+html = re.sub(r'(href|src)="(/[^"]*)"', prefix_asset, html)
 (DIST / "index.html").write_text(html)
 if faces: (DIST / "fonts.css").write_text("\n".join(faces))
 css = re.sub(r"\s+", " ", re.sub(r"/\*.*?\*/", "", (SRC / "styles.css").read_text(), flags=re.S))
 (DIST / "styles.css").write_text(css)
 for f in ("main.js", "logic.js", "gauge.js", "demo.js", "demo.css", "favicon.png"): shutil.copy(SRC / f, DIST / f)
+# For GitHub Pages subpath, also copy to subpath directory (after CSS generation)
+if BASE_PATH:
+    subdir = DIST / BASE_PATH.lstrip("/")
+    (subdir / "fonts").mkdir(parents=True, exist_ok=True)
+    for f in (SRC / "fonts").glob("*.woff2"): shutil.copy(f, subdir / "fonts" / f.name)
+    for f in ("main.js", "logic.js", "gauge.js", "demo.js", "demo.css", "favicon.png"):
+        shutil.copy(SRC / f, subdir / f)
+    # Copy generated/root files to subdir (after CSS generation)
+    for f in ["styles.css", "fonts.css", "favicon.png", "og.png"]:
+        if (DIST / f).exists():
+            shutil.copy(DIST / f, subdir / f)
 
 # 3. SEO and security files
 S = cfg["SITE"]
@@ -121,7 +151,7 @@ if 'lang="en"' not in html: errs.append("missing lang")
 try: json.loads(p.ldtxt)
 except Exception as e: errs.append(f"JSON-LD invalid: {e}")
 js = "".join((SRC / n).read_text() for n in ("main.js", "logic.js", "gauge.js", "demo.js"))
-for bad in ("document.cookie", "localStorage", "sessionStorage", "fetch(", "XMLHttpRequest", "sendBeacon"): 
+for bad in ("document.cookie", "localStorage", "sessionStorage", "fetch(", "XMLHttpRequest", "sendBeacon"):
     if bad in js: errs.append(f"JS uses {bad}")
 print("Warnings:", *warn, sep="\n  - ") if warn else print("No warnings")
 print("Errors:", *errs, sep="\n  - ") if errs else print("Static checks passed (no browser rendering was tested)")
