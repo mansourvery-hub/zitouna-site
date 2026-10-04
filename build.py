@@ -33,6 +33,8 @@ for n, w, f in FONTS:
 if DIST.exists(): shutil.rmtree(DIST)
 (DIST / "fonts").mkdir(parents=True)
 for f in (SRC / "fonts").glob("*.woff2"): shutil.copy(f, DIST / "fonts" / f.name)
+# Disable Jekyll on GitHub Pages
+(DIST / ".nojekyll").write_text("")
 html = sub((SRC / "index.html").read_text()).replace("{{FONTS_LINK}}", '<link rel="stylesheet" href="/fonts.css">\n' if faces else "")
 (DIST / "index.html").write_text(html)
 if faces: (DIST / "fonts.css").write_text("\n".join(faces))
