@@ -1,5 +1,10 @@
 import { defineConfig, devices } from '@playwright/test';
 
+// BASE_URL lets the same suite run against the local build (default) or the
+// deployed site:  BASE_URL=https://example.com pnpm exec playwright test
+const BASE_URL = process.env.BASE_URL ?? 'http://localhost:8082';
+const IS_LIVE = process.env.BASE_URL !== undefined;
+
 export default defineConfig({
   testDir: './tests/e2e',
   fullyParallel: true,
@@ -8,7 +13,7 @@ export default defineConfig({
   workers: process.env.CI ? 1 : undefined,
   reporter: 'html',
   use: {
-    baseURL: 'http://localhost:8082',
+    baseURL: BASE_URL,
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
   },
@@ -22,10 +27,13 @@ export default defineConfig({
       use: { ...devices['Pixel 5'] },
     },
   ],
-  webServer: {
-    command: 'python3 tools/serve.py',
-    url: 'http://localhost:8082',
-    reuseExistingServer: !process.env.CI,
-    timeout: 120000,
-  },
+  // No local server when pointing at an already-deployed site.
+  webServer: IS_LIVE
+    ? undefined
+    : {
+        command: 'python3 tools/serve.py',
+        url: 'http://localhost:8082',
+        reuseExistingServer: !process.env.CI,
+        timeout: 120000,
+      },
 });

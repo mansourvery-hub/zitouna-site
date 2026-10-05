@@ -1,5 +1,9 @@
 import { test, expect } from '@playwright/test';
 
+// Navigate to the configured base URL. '/' would resolve to the ORIGIN root
+// (e.g. https://user.github.io/) instead of a project site subpath.
+const HOME = process.env.BASE_URL ?? '/';
+
 const VIEWPORTS = [
   { width: 360, height: 640, name: 'mobile-360' },
   { width: 390, height: 844, name: 'mobile-390' },
@@ -18,7 +22,7 @@ test.describe('Zitouna site visual regression', () => {
           await page.emulateMedia({ colorScheme: theme as 'light' | 'dark', reducedMotion: motion as 'reduce' | 'no-preference' });
           await page.setViewportSize({ width: viewport.width, height: viewport.height });
           
-          await page.goto('/');
+          await page.goto(HOME);
           await page.waitForLoadState('networkidle');
           
           // Take screenshot
@@ -35,7 +39,7 @@ test.describe('Zitouna site visual regression', () => {
 test.describe('No horizontal scrolling at 360px', () => {
   test('no horizontal overflow at 360px width', async ({ page }) => {
     await page.setViewportSize({ width: 360, height: 640 });
-    await page.goto('/');
+    await page.goto(HOME);
     await page.waitForLoadState('networkidle');
     
     const bodyWidth = await page.evaluate(() => document.body.scrollWidth);
@@ -47,7 +51,7 @@ test.describe('No horizontal scrolling at 360px', () => {
 test.describe('Sticky header does not hide anchor targets', () => {
   test('anchor targets visible with sticky header', async ({ page }) => {
     await page.setViewportSize({ width: 360, height: 640 });
-    await page.goto('/');
+    await page.goto(HOME);
     await page.waitForLoadState('networkidle');
     
     // Check all anchor links except skip link
@@ -74,7 +78,7 @@ test.describe('Sticky header does not hide anchor targets', () => {
 test.describe('Demo tabs functionality', () => {
   test.beforeEach(async ({ page }) => {
     await page.setViewportSize({ width: 360, height: 640 });
-    await page.goto('/');
+    await page.goto(HOME);
     await page.waitForLoadState('networkidle');
   });
 
@@ -216,7 +220,7 @@ test.describe('Demo tabs functionality', () => {
 test.describe('Demo keyboard navigation', () => {
   test.beforeEach(async ({ page }) => {
     await page.setViewportSize({ width: 360, height: 640 });
-    await page.goto('/');
+    await page.goto(HOME);
     await page.waitForLoadState('networkidle');
   });
 
@@ -297,33 +301,44 @@ test.describe('Demo keyboard navigation', () => {
   });
 });
 
+// GitHub Pages cannot send custom response headers, so dist/_headers is inert
+// there. Assert the headers only against a host that applies _headers; assert
+// the weaker "no violations" guarantee everywhere.
+const HOSTS_CUSTOM_HEADERS =
+  !process.env.BASE_URL || /localhost|127\.0\.0\.1/.test(process.env.BASE_URL);
+
 test.describe('CSP and security headers', () => {
-  test('CSP header is present and no violations in console', async ({ page }) => {
+  test('no CSP violations in console', async ({ page }) => {
     const cspViolations: string[] = [];
     page.on('console', (msg) => {
       if (msg.type() === 'error' && msg.text().includes('Content Security Policy')) {
         cspViolations.push(msg.text());
       }
     });
-    
-    await page.goto('/');
+
+    await page.goto(HOME);
     await page.waitForLoadState('networkidle');
-    
-    // Check CSP header
-    const response = await page.goto('/');
+
+    // The page ships a CSP via dist/_headers and must not trip it.
+    expect(cspViolations.length).toBe(0);
+  });
+
+  test('CSP header is present and restrictive', async ({ page }) => {
+    test.skip(!HOSTS_CUSTOM_HEADERS, 'host does not apply dist/_headers (e.g. GitHub Pages)');
+
+    const response = await page.goto(HOME);
     const headers = response?.headers();
     expect(headers?.['content-security-policy']).toBeTruthy();
     expect(headers?.['content-security-policy']).toContain("script-src 'self'");
     expect(headers?.['content-security-policy']).toContain("style-src 'self'");
-    
-    // Check no CSP violations
-    expect(cspViolations.length).toBe(0);
   });
 
   test('Security headers present', async ({ page }) => {
-    const response = await page.goto('/');
+    test.skip(!HOSTS_CUSTOM_HEADERS, 'host does not apply dist/_headers (e.g. GitHub Pages)');
+
+    const response = await page.goto(HOME);
     const headers = response?.headers();
-    
+
     expect(headers?.['strict-transport-security']).toBeTruthy();
     expect(headers?.['x-content-type-options']).toBe('nosniff');
     expect(headers?.['referrer-policy']).toBe('no-referrer');
@@ -337,7 +352,7 @@ test.describe('JavaScript off', () => {
     const context = await browser.newContext({ javaScriptEnabled: false });
     const page = await context.newPage();
     await page.setViewportSize({ width: 360, height: 640 });
-    await page.goto('/');
+    await page.goto(HOME);
     await page.waitForLoadState('networkidle');
     
     // Check for no-JS message in demo area
@@ -353,7 +368,7 @@ test.describe('JavaScript off', () => {
 test.describe('Screen reader announcements', () => {
   test('Live region announces gauge changes', async ({ page }) => {
     await page.setViewportSize({ width: 360, height: 640 });
-    await page.goto('/');
+    await page.goto(HOME);
     await page.waitForLoadState('networkidle');
     
     await page.locator('button[role="tab"][data-t="ripeness"]').click();
@@ -379,7 +394,7 @@ test.describe('Screen reader announcements', () => {
 test.describe('Scroll background color change', () => {
   test('Background ripens through colors on scroll and returns to hero on scroll up', async ({ page }) => {
     await page.setViewportSize({ width: 360, height: 640 });
-    await page.goto('/');
+    await page.goto(HOME);
     await page.waitForLoadState('networkidle');
     
     // Get hero background color (the hero section has class="hero" and data-stage="hero")
