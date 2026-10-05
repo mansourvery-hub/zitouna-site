@@ -64,7 +64,7 @@ html = re.sub(r'(href|src)="(/[^"]*)"', prefix_asset, html)
 if faces: (DIST / "fonts.css").write_text("\n".join(faces))
 css = re.sub(r"\s+", " ", re.sub(r"/\*.*?\*/", "", (SRC / "styles.css").read_text(), flags=re.S))
 (DIST / "styles.css").write_text(css)
-for f in ("main.js", "logic.js", "gauge.js", "demo.js", "demo.css", "favicon.png"): shutil.copy(SRC / f, DIST / f)
+for f in ("main.js", "logic.js", "gauge.js", "demo.js", "demo.css", "demo-tokens.css", "app-ui.js", "favicon.png"): shutil.copy(SRC / f, DIST / f)
 
 # For GitHub Pages subpath, ensure assets at BASE_PATH (dist/BASE_PATH.lstrip("/"))
 # Since GitHub Pages serves dist/ at BASE_PATH, /BASE_PATH/... maps to dist/BASE_PATH.lstrip("/")/
@@ -72,7 +72,7 @@ if BASE_PATH:
     base_dir = DIST / BASE_PATH.lstrip("/")
     (base_dir / "fonts").mkdir(parents=True, exist_ok=True)
     for f in (SRC / "fonts").glob("*.woff2"): shutil.copy(f, base_dir / "fonts" / f.name)
-    for f in ("main.js", "logic.js", "gauge.js", "demo.js", "demo.css", "favicon.png"):
+    for f in ("main.js", "logic.js", "gauge.js", "demo.js", "demo.css", "demo-tokens.css", "app-ui.js", "favicon.png"):
         shutil.copy(SRC / f, base_dir / f)
     # Copy generated/root files (after CSS generation)
     for f in ["styles.css", "fonts.css", "favicon.png", "og.png"]:
@@ -92,59 +92,6 @@ if BASE_PATH:
     base_dir = DIST / BASE_PATH.lstrip("/")
     (base_dir / ".nojekyll").write_text("")
 
-html = sub((SRC / "index.html").read_text()).replace("{{FONTS_LINK}}", f'<link rel="stylesheet" href="{prefix("/fonts.css")}">\n' if faces else "")
-# Prefix all asset paths in HTML (href/src starting with / but not already prefixed)
-def prefix_asset(match):
-    path = match.group(2)
-    if path.startswith(BASE_PATH + "/"):
-        return match.group(0)  # Already prefixed
-    return match.group(1) + '="' + prefix(path) + '"'
-html = re.sub(r'(href|src)="(/[^"]*)"', prefix_asset, html)
-(DIST / "index.html").write_text(html)
-if faces: (DIST / "fonts.css").write_text("\n".join(faces))
-css = re.sub(r"\s+", " ", re.sub(r"/\*.*?\*/", "", (SRC / "styles.css").read_text(), flags=re.S))
-(DIST / "styles.css").write_text(css)
-for f in ("main.js", "logic.js", "gauge.js", "demo.js", "demo.css", "favicon.png"): shutil.copy(SRC / f, DIST / f)
-
-# For GitHub Pages subpath, ensure assets at BASE_PATH (dist/BASE_PATH.lstrip("/"))
-# Since GitHub Pages serves dist/ at BASE_PATH, /BASE_PATH/... maps to dist/BASE_PATH.lstrip("/")/
-if BASE_PATH:
-    base_dir = DIST / BASE_PATH.lstrip("/")
-    (base_dir / "fonts").mkdir(parents=True, exist_ok=True)
-    for f in (SRC / "fonts").glob("*.woff2"): shutil.copy(f, base_dir / "fonts" / f.name)
-    for f in ("main.js", "logic.js", "gauge.js", "demo.js", "demo.css", "favicon.png"):
-        shutil.copy(SRC / f, base_dir / f)
-    # Copy generated/root files (after CSS generation)
-    for f in ["styles.css", "fonts.css", "favicon.png", "og.png"]:
-        if (DIST / f).exists():
-            shutil.copy(DIST / f, base_dir / f)
-    # ALSO copy fonts to dist/fonts/ for any absolute /fonts/ refs
-    # (HTML should use BASE_PATH prefix, but belt-and-suspenders)
-    if not (DIST / "fonts").exists():
-        (DIST / "fonts").mkdir(parents=True, exist_ok=True)
-    for f in (SRC / "fonts").glob("*.woff2"):
-        if not (DIST / "fonts" / f.name).exists():
-            shutil.copy(f, DIST / "fonts" / f.name)
-
-# Disable Jekyll on GitHub Pages (also in base_dir if needed)
-(DIST / ".nojekyll").write_text("")
-if BASE_PATH:
-    base_dir = DIST / BASE_PATH.lstrip("/")
-    (base_dir / ".nojekyll").write_text("")
-
-html = sub((SRC / "index.html").read_text()).replace("{{FONTS_LINK}}", f'<link rel="stylesheet" href="{prefix("/fonts.css")}">\n' if faces else "")
-# Prefix all asset paths in HTML (href/src starting with / but not already prefixed)
-def prefix_asset(match):
-    path = match.group(2)
-    if path.startswith(BASE_PATH + "/"):
-        return match.group(0)  # Already prefixed
-    return match.group(1) + '="' + prefix(path) + '"'
-html = re.sub(r'(href|src)="(/[^"]*)"', prefix_asset, html)
-(DIST / "index.html").write_text(html)
-if faces: (DIST / "fonts.css").write_text("\n".join(faces))
-css = re.sub(r"\s+", " ", re.sub(r"/\*.*?\*/", "", (SRC / "styles.css").read_text(), flags=re.S))
-(DIST / "styles.css").write_text(css)
-for f in ("main.js", "logic.js", "gauge.js", "demo.js", "demo.css", "favicon.png"): shutil.copy(SRC / f, DIST / f)
 
 # 3. SEO and security files
 S = cfg["SITE"]

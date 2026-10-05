@@ -1,14 +1,21 @@
 #!/usr/bin/env python3
-"""Check that the site's JS/CSS matches the app's Dart source.
+"""Check that the demo's hand-ported logic and gauge geometry match the app's Dart source.
+
+This covers only what the sync generators do NOT: the demo's ripeness and
+rendement rules (src/logic.js) and gauge geometry (src/gauge.js) are translated
+by hand, so their values are checked here against the Dart they translate.
+
+Strings (app_en.arb) and theme tokens (zitouna_theme.dart) are checked by the
+sync gates instead — `node scripts/sync-design.js --check` and
+`node scripts/sync-strings.js --check` — because those inputs now flow into the
+demo as generated files (src/demo-tokens.css, design/app-ui.json) rather than
+hand-copied literals.
 
 Compares:
 - lib/logic/ripeness_calculator.dart vs src/logic.js
 - lib/logic/rendement_calculator.dart vs src/logic.js
 - lib/widgets/ripeness_arc_gauge.dart vs src/gauge.js
-- lib/theme/zitouna_theme.dart vs src/demo.css, tests/contrast.py
-- lib/l10n/app_en.arb vs src/demo.js
 """
-import json
 import re
 import sys
 from pathlib import Path
@@ -24,12 +31,6 @@ def read_dart(path):
 
 def read_js(path):
     return (SITE_ROOT / path).read_text()
-
-def read_css(path):
-    return (SITE_ROOT / path).read_text()
-
-def read_arb(path):
-    return json.loads((APP_ROOT / path).read_text())
 
 # 1. lib/logic/ripeness_calculator.dart vs src/logic.js
 print("Checking ripeness_calculator.dart vs logic.js...")
@@ -159,112 +160,6 @@ if not mini_mr_dart:
 if mini_mr_dart and mini_mr_js:
     if mini_mr_dart.group(1) != mini_mr_js.group(1):
         errors.append(f"Mini markerRadius mismatch: app={mini_mr_dart.group(1)}, site={mini_mr_js.group(1)}")
-
-# 4. lib/theme/zitouna_theme.dart vs src/demo.css
-print("Checking zitouna_theme.dart vs demo.css...")
-dart = read_dart("lib/theme/zitouna_theme.dart")
-css = read_css("src/demo.css")
-
-# Light theme colors - app uses 8-digit hex (0xAARRGGBB), site uses 6-digit (#RRGGBB)
-light_colors = [
-    ("paper", r"paper:\s*Color\(0x[A-Fa-f0-9]{2}([A-Fa-f0-9]{6})\)", r"--paper:#([A-Fa-f0-9]{6})"),
-    ("paperRaised", r"paperRaised:\s*Color\(0x[A-Fa-f0-9]{2}([A-Fa-f0-9]{6})\)", r"--raised:#([A-Fa-f0-9]{6})"),
-    ("paperSunken", r"paperSunken:\s*Color\(0x[A-Fa-f0-9]{2}([A-Fa-f0-9]{6})\)", r"--sunken:#([A-Fa-f0-9]{6})"),
-    ("ink", r"ink:\s*Color\(0x[A-Fa-f0-9]{2}([A-Fa-f0-9]{6})\)", r"--ink:#([A-Fa-f0-9]{6})"),
-    ("olive", r"olive:\s*Color\(0x[A-Fa-f0-9]{2}([A-Fa-f0-9]{6})\)", r"--olive:#([A-Fa-f0-9]{6})"),
-    ("gold", r"gold:\s*Color\(0x[A-Fa-f0-9]{2}([A-Fa-f0-9]{6})\)", r"var\(--c1\)"),
-    ("stageEarly", r"stageEarly:\s*Color\(0x[A-Fa-f0-9]{2}([A-Fa-f0-9]{6})\)", r"--c0:#([A-Fa-f0-9]{6})"),
-    ("stageSoon", r"stageSoon:\s*Color\(0x[A-Fa-f0-9]{2}([A-Fa-f0-9]{6})\)", r"--c1:#([A-Fa-f0-9]{6})"),
-    ("stagePick", r"stagePick:\s*Color\(0x[A-Fa-f0-9]{2}([A-Fa-f0-9]{6})\)", r"--c2:#([A-Fa-f0-9]{6})"),
-    ("stageLate", r"stageLate:\s*Color\(0x[A-Fa-f0-9]{2}([A-Fa-f0-9]{6})\)", r"--c3:#([A-Fa-f0-9]{6})"),
-]
-
-light_section = re.search(r"static const ZitounaTheme light = ZitounaTheme\((.*?)\);", dart, re.S)
-if light_section:
-    light_dart = light_section.group(1)
-    for name, dart_pat, css_pat in light_colors:
-        dart_match = re.search(dart_pat, light_dart)
-        css_match = re.search(css_pat, css)
-        if dart_match and css_match:
-            dart_val = "#" + dart_match.group(1)
-            print(f"  Checking {name}: dart={dart_val}, css_pat={css_pat}, css_match_groups={css_match.groups()}")
-            if "var(" in css_pat:
-                # CSS variable reference - check the variable exists and resolve it
-                var_name = "--c1"  # hardcoded for gold
-                var_match = re.search(rf"{re.escape(var_name)}:#([A-Fa-f0-9]{{6}})", css)
-                if var_match:
-                    css_val = "#" + var_match.group(1)
-                    if dart_val.upper() != css_val.upper():
-                        errors.append(f"Light {name} mismatch (via {var_name}): app={dart_val}, site={css_val}")
-                else:
-                    errors.append(f"Light {name} CSS variable {var_name} not found in CSS")
-            else:
-                # Check if css_match has groups
-                if css_match.groups():
-                    css_val = "#" + css_match.group(1)
-                    if dart_val.upper() != css_val.upper():
-                        errors.append(f"Light {name} mismatch: app={dart_val}, site={css_val}")
-                else:
-                    print(f"  INFO: {name} pattern has no capture group, skipping direct comparison")
-        elif dart_match and not css_match:
-            print(f"  WARNING: {name} found in Dart but not in CSS (pattern: {css_pat})")
-        elif not dart_match and css_match:
-            print(f"  WARNING: {name} found in CSS but not in Dart")
-
-# Dark theme colors
-dark_section = re.search(r"static const ZitounaTheme dark = ZitounaTheme\((.*?)\);", dart, re.S)
-if dark_section:
-    dark_dart = dark_section.group(1)
-    dark_css_section = re.search(r"@media\(prefers-color-scheme:dark\)\{([^}]+)\}", css)
-    if dark_css_section:
-        dark_css = dark_css_section.group(1)
-        for name, dart_pat, css_pat in light_colors:
-            dart_match = re.search(dart_pat, dark_dart)
-            css_match = re.search(css_pat, dark_css)
-            if dart_match and css_match:
-                dart_val = "#" + dart_match.group(1)
-                if "var(" in css_pat:
-                    var_name = css_match.group(1)
-                    var_match = re.search(rf"{re.escape(var_name)}:#([A-Fa-f0-9]{{6}})", css)
-                    if var_match:
-                        css_val = "#" + var_match.group(1)
-                        if dart_val.upper() != css_val.upper():
-                            errors.append(f"Dark {name} mismatch (via {var_name}): app={dart_val}, site={css_val}")
-                else:
-                    css_val = "#" + css_match.group(1)
-                    if dart_val.upper() != css_val.upper():
-                        errors.append(f"Dark {name} mismatch: app={dart_val}, site={css_val}")
-
-# 5. lib/l10n/app_en.arb vs src/demo.js
-print("Checking app_en.arb vs demo.js...")
-arb = read_arb("lib/l10n/app_en.arb")
-js = read_js("src/demo.js")
-
-strings_to_check = [
-    ("checkRipeness", "Check Ripeness"),
-    ("saveRipenessCheck", "Save Ripeness Check"),
-    ("saveMillLog", "Save Delivery"),
-    ("computedRendementLabel", "Extraction Rendement"),
-    ("tabOverview", "Overview"),
-    ("tabRipeness", "Ripeness"),
-    ("tabMill", "Mill"),
-    ("stageTooEarly", "Too Early"),
-    ("stageSoon", "Soon"),
-    ("stagePickNow", "Pick Now"),
-    ("stageGettingLate", "Getting Late"),
-    ("bucketGreen", "Green"),
-    ("bucketTurning", "Turning"),
-    ("bucketPurple", "Purple"),
-    ("bucketBlack", "Black"),
-]
-
-for key, expected in strings_to_check:
-    if key not in arb:
-        errors.append(f"ARB missing key: {key}")
-    elif arb[key] != expected:
-        errors.append(f"ARB value mismatch {key}: expected='{expected}', got='{arb[key]}'")
-    if expected not in js:
-        errors.append(f"JS missing string: '{expected}' (from ARB key {key})")
 
 # Summary
 print()
