@@ -1,8 +1,9 @@
-/* App tokens copied from lib/theme/zitouna_theme.dart (light and dark). */
-.app{--paper:#F5F1E2;--raised:#FFFEF9;--sunken:#EAE2C8;--ink:#242A1B;--soft:#6C7058;--line:#E2D8B8;--olive:#3F4B26;
---c0:#6E9B3F;--t0:#E3EEDA;--c1:#C1962A;--t1:#F4E8CB;--c2:#833F5C;--t2:#EFDCE4;--c3:#241B24;--t3:#E2DDE2;--oliveT:#E4E7D2}
-@media(prefers-color-scheme:dark){.app{--paper:#191A11;--raised:#222418;--sunken:#131409;--ink:#ECE7D2;--soft:#A7AB8C;--line:#33351E;--olive:#A7C078;
---c0:#8FC25C;--t0:#232E17;--c1:#E0B44A;--t1:#312713;--c2:#DC8CAC;--t2:#37222D;--c3:#B7ADC0;--t3:#232028;--oliveT:#262C19}}
+/* Colour and radius tokens live in demo-tokens.css, generated from the app's
+   lib/theme/zitouna_theme.dart by scripts/sync-design.js. Do not re-declare them here —
+   a second copy is a second thing to forget to update. */
+
+/* Layout for the demo's copy of the app's parcel screen. The widget tree is a translation,
+   not a copy, so this part is hand-written; see SYNC_PIPELINE.md for what is generated. */
 .app{position:relative;max-width:420px;margin:48px auto 0;background:var(--paper);color:var(--ink);border:1px solid var(--line);border-radius:36px;padding:18px 14px 22px;text-align:start;box-shadow:0 30px 60px -28px #0008;min-height:640px}
 .ah{padding:6px 8px 14px}.nm{font:500 26px/1.1 var(--serif)}.ah p{color:var(--soft);font-size:14px}
 .tabs{display:flex;background:var(--sunken);border-radius:99px;padding:4px;gap:2px;margin-bottom:14px}
@@ -25,5 +26,4 @@
 .save{min-height:52px;border:0;border-radius:99px;background:var(--olive);color:var(--paper);font:700 16px var(--sans);cursor:pointer}.save[aria-disabled=true]{opacity:.4;cursor:default}.app :focus-visible{outline-color:var(--ink)}.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
 .f{display:block;font-weight:700;font-size:14px;margin-bottom:12px}.f input{display:block;width:100%;margin-top:6px;padding:10px 14px;font:500 22px var(--serif);border:1px solid var(--line);border-radius:18px;background:var(--paper);color:var(--ink)}
 .toast{position:absolute;left:18px;right:18px;bottom:16px;background:var(--ink);color:var(--paper);border-radius:14px;padding:12px 16px;font-size:14px;opacity:0;transform:translateY(8px);pointer-events:none;transition:opacity .25s,transform .25s}.toast.on{opacity:1;transform:none}
-.diff{max-width:520px;margin:28px auto 0;text-align:start;font-size:15px}.diff summary{font:500 18px var(--serif)}.diff ul{margin:12px 0 0;padding-inline-start:20px}.diff li{margin-top:6px}
 @media(prefers-reduced-motion:reduce){.toast{transition:none}}
