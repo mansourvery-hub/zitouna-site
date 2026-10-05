@@ -42,7 +42,10 @@
 .pcel .pn{font:500 26px/1.15 var(--serif);margin:0 0 4px}
 .pcel .ps{font-size:14px;opacity:.85;margin:0 0 6px}
 .pcel .gauge{margin:2px auto;max-width:300px}
-.pcel .chip{color:var(--washText)}
+.pcel .chip{background:color-mix(in srgb,var(--washText) 18%,transparent);color:var(--washText);transform:rotate(-3deg)}
+/* markerFillColor: welcomeWashText, markerStrokeColor: welcomeWashInk (my_trees_screen.dart:380) */
+.pcel .mk{fill:var(--washText);stroke:var(--washInk)}
+.pcel .halo{fill:color-mix(in srgb,var(--washText) 20%,transparent)}
 /* Trees header with action icons, like the app's My Trees top row. */
 .thead{display:flex;align-items:flex-end;justify-content:space-between;padding:2px 4px 12px}
 .thead b{display:block;font:500 26px/1.15 var(--serif)}

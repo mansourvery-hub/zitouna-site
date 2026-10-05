@@ -193,6 +193,7 @@ const copy = {
   weightUnitKilograms: need('weightUnitKilograms', 'kilograms option'),
   weightUnitQuintals: need('weightUnitQuintals', 'quintals option'),
   languageTitle: need('languageTitle', 'language title'),
+  homeSubtitle: need('homeSubtitle', 'My Trees header subtitle template'),
   // Known gaps: present in the app, intentionally not ported to the demo.
   backupExport: need('backupExport', 'backup export button (gap: needs a filesystem)'),
   backupImport: need('backupImport', 'backup import button (gap: needs a filesystem)'),

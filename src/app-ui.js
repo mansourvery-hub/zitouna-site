@@ -135,6 +135,7 @@ window.ZITOUNA_UI = {
     "weightUnitKilograms": "Kilograms (kg)",
     "weightUnitQuintals": "Quintals (q, 100 kg)",
     "languageTitle": "Language",
+    "homeSubtitle": "{treeCount} trees across {parcelCount} parcels",
     "backupExport": "Export my data",
     "backupImport": "Restore from a backup file",
     "shareApp": "Share this app",

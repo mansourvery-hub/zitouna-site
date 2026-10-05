@@ -57,9 +57,9 @@ const views = {
     const cards = st.parcels.map((p) => {
       const l = lastCheck(p);
       return `<button class="pcel open" data-p="${p.id}"><span class="prow">${l ? chip(l.stage) : '<span class="dash"></span>'}<span class="chev" aria-hidden="true">›</span></span>
-<p class="pn">${p.name}</p><p class="ps">${p.variety} · ${p.trees} trees</p>${gauge(l ? l.index : 0, true)}</button>`;
+<p class="pn">${p.name}</p><p class="ps">${p.variety} · ${fill(UI.copy.treesCountLabel, { count: p.trees })}</p>${gauge(l ? l.index : 0, true)}</button>`;
     }).join('');
-    return `<div class="thead"><div><b>${UI.copy.myTrees}</b><span>${st.parcels.reduce((s, p) => s + p.trees, 0)} trees across ${st.parcels.length} parcels</span></div>
+    return `<div class="thead"><div><b>${UI.copy.myTrees}</b><span>${fill(UI.copy.homeSubtitle, { treeCount: st.parcels.reduce((s, p) => s + p.trees, 0), parcelCount: st.parcels.length })}</span></div>
 <div class="acts"><button class="act" id="go-set" aria-label="${UI.copy.settingsTitle}">⚙</button></div></div>${cards}
 <button class="save" id="addp">${UI.copy.addParcel}</button>`;
   },
