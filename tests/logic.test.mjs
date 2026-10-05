@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 // (src/gauge.js) was removed with the HTML demo: the real RipenessArcGauge now
 // renders inside the framed Flutter app, so testing a dead copy would be worse
 // than testing nothing.
-import { ripeness, rendement } from '../src/logic.js';
+import { ripeness, rendement, estimate, weightedRendement, bearing, toQ, fromQ } from '../src/logic.js';
 const z = { g: 0, t: 0, p: 0, b: 0 };
 test('empty sample is Too Early at 0.00', () => assert.deepEqual(ripeness(z), { index: 0, stage: 0, n: 0 }));
 test('boundaries (Chemlali 2.0 / 3.5 / 5.5)', () => {
@@ -27,4 +27,29 @@ test('rendement', () => {
   assert.equal(rendement(1000, 180).pct.toFixed(2), '16.49');
   assert.equal(rendement(0, 10), null); assert.equal(rendement(100, -1), null); assert.equal(rendement(NaN, 5), null);
   assert.equal(rendement(100, 0).pct, 0);
+});
+test('pre-press estimate is always a range (never a point)', () => {
+  for (const [kg, ix, hist] of [[100, null, null], [100, 1.0, null], [100, 4.0, 16.5], [100, 6.0, 20.0], [0, 4.0, 16.5]]) {
+    const e = estimate(kg, 'chemlali', ix, hist);
+    assert.ok(e.hi - e.lo >= 2.5, JSON.stringify({ kg, ix, hist, e }));
+  }
+  const e = estimate(100, 'chemlali', 4.0, 16.5);
+  assert.equal(e.conf, 2);
+  assert.equal(estimate(100, 'chemlali').conf, 0);
+  assert.equal(estimate(100, 'chemlali', 4.0).conf, 1);
+});
+test('weighted rendement drops invalid logs, null when none valid', () => {
+  assert.equal(weightedRendement([{ kg: 1000, oil: 180 }]), 16.49);
+  assert.equal(weightedRendement([{ kg: 0, oil: 10 }, { kg: -5, oil: 3 }]), null);
+  assert.equal(weightedRendement([]), null);
+});
+test('alternate-bearing signal follows the 20% rule', () => {
+  assert.equal(bearing(15, [10, 10, 10]), -1);  // +50%: likely light next
+  assert.equal(bearing(5, [10, 10, 10]), 1);    // -50%: likely heavy next
+  assert.equal(bearing(10.5, [10, 10, 10]), 0); // +5%: balanced
+  assert.equal(bearing(10, []), 0);
+  assert.equal(bearing(0, [10]), 0);
+});
+test('quintal conversion is exact', () => {
+  assert.equal(toQ(250), 2.5); assert.equal(fromQ(2.5), 250);
 });
