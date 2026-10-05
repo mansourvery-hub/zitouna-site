@@ -36,9 +36,13 @@ Not claimed: iOS, camera or photo ripeness, weather, map, source code or licence
 
 ## Demo: the app itself, running in the page
 
-The demo is not a translation. It is the app's real Flutter widgets and real business logic,
-compiled to Web (`flutter build web --target=lib/main_web_demo.dart --no-web-resources-cdn`)
-and framed by the page in `src/flutter-demo/`.
+The demo is not a translation. It is the app itself — `ZitounaApp` with its router and all
+nine screens — compiled to Web (`flutter build web --target=lib/main_web_demo.dart
+--no-web-resources-cdn`) and framed by the page in `src/flutter-demo/`. The only thing
+swapped out is persistence: four in-memory repositories seeded with two seasons of example
+data (`Zitouna/lib/demo/memory_repositories.dart`, on the app repo's `web-target-experiment`
+branch), because SQLite cannot run in a browser. Backup export/import and APK sharing
+present their normal failure messages instead of working.
 
 - `Zitouna/lib/main_web_demo.dart` (on the app repo's `web-target-experiment` branch) renders
   the actual `RipenessArcGauge`, `StagePill` and `ZitounaTheme`, driven by the actual
