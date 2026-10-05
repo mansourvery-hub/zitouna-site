@@ -10,6 +10,15 @@ permissions:
   pages: write
   id-token: write
 
+env:
+  # The app repo is private, so regenerating the demo in CI needs a read-only
+  # token. Without one, the build committed under src/flutter-demo is deployed
+  # as-is -- still the real app, just captured by whoever last ran
+  # tools/build-demo.sh locally. Set the APP_TOKEN secret to a read-only PAT to
+  # make CI the source of truth. Compared as an env var rather than
+  # `secrets.APP_TOKEN` directly, which is not usable in a step-level `if`.
+  HAS_APP_TOKEN: ${{ secrets.APP_TOKEN != '' }}
+
 concurrency:
   group: "pages"
   cancel-in-progress: true
@@ -32,9 +41,8 @@ jobs:
         with:
           node-version: "22"
 
-      # Only needed when regenerating the demo from the app (see below).
       - uses: subosito/flutter-action@v2
-        if: ${{ secrets.APP_TOKEN != '' }}
+        if: env.HAS_APP_TOKEN == 'true'
         with:
           flutter-version: 3.47.4
           channel: stable
@@ -42,13 +50,8 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      # The app repo is private, so regenerating the demo in CI needs a read-only
-      # token. Without one, the build committed under src/flutter-demo is used
-      # as-is -- still the real app, just captured by whoever last ran
-      # tools/build-demo.sh locally. Set the APP_TOKEN secret to a read-only PAT
-      # to make CI the source of truth.
       - name: Generate the demo from the app
-        if: ${{ secrets.APP_TOKEN != '' }}
+        if: env.HAS_APP_TOKEN == 'true'
         env:
           ZITOUNA_APP_DIR: ${{ github.workspace }}/../app
         run: |
