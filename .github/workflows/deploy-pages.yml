@@ -26,36 +26,34 @@ jobs:
 
       - run: pip install pillow
 
-      # The demo is generated from the app, so CI regenerates it rather than
-      # trusting a committed copy: the Flutter build is 26MB and must never go
-      # stale against the app it is a screenshot of.
-      - uses: subosito/flutter-action@v2
-        with:
-          flutter-version: 3.47.4
-          channel: stable
-          cache: true
-
       - uses: pnpm/action-setup@v4
 
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
 
+      # Only needed when regenerating the demo from the app (see below).
+      - uses: subosito/flutter-action@v2
+        if: ${{ secrets.APP_TOKEN != '' }}
+        with:
+          flutter-version: 3.47.4
+          channel: stable
+          cache: true
+
       - run: pnpm install --frozen-lockfile
 
-      # TODO: needs the app repo URL. It is a variable rather than a literal so
-      # the fork-safe default works without editing this file; set APP_REPO in the
-      # repository settings to "owner/name" of the Flutter app.
+      # The app repo is private, so regenerating the demo in CI needs a read-only
+      # token. Without one, the build committed under src/flutter-demo is used
+      # as-is -- still the real app, just captured by whoever last ran
+      # tools/build-demo.sh locally. Set the APP_TOKEN secret to a read-only PAT
+      # to make CI the source of truth.
       - name: Generate the demo from the app
+        if: ${{ secrets.APP_TOKEN != '' }}
         env:
           ZITOUNA_APP_DIR: ${{ github.workspace }}/../app
         run: |
-          if [ -z "${{ vars.APP_REPO }}" ]; then
-            echo "::error::repository variable APP_REPO is not set (owner/name of the Flutter app repo)"
-            exit 1
-          fi
           git clone --depth 1 --branch web-target-experiment \
-            "https://github.com/${{ vars.APP_REPO }}.git" ../app
+            "https://x-access-token:${{ secrets.APP_TOKEN }}@github.com/${{ vars.APP_REPO }}.git" ../app
           sh tools/build-demo.sh --app ../app
 
       - name: Build site
