@@ -65,10 +65,6 @@ if faces: (DIST / "fonts.css").write_text("\n".join(faces))
 css = re.sub(r"\s+", " ", re.sub(r"/\*.*?\*/", "", (SRC / "styles.css").read_text(), flags=re.S))
 (DIST / "styles.css").write_text(css)
 for f in ("main.js", "logic.js", "gauge.js", "demo.js", "demo.css", "demo-tokens.css", "app-ui.js", "favicon.png"): shutil.copy(SRC / f, DIST / f)
-_probe = SRC / "_probe"
-if _probe.exists():
-    (DIST / "_probe").mkdir(parents=True, exist_ok=True)
-    for f in _probe.glob("*"): shutil.copy(f, DIST / "_probe" / f.name)
 
 
 # For GitHub Pages subpath, ensure assets at BASE_PATH (dist/BASE_PATH.lstrip("/"))
