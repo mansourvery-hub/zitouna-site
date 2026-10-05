@@ -2,7 +2,15 @@ name: Check
 on:
   push:
   pull_request:
+  workflow_dispatch:
+    inputs:
+      update_snapshots:
+        description: Regenerate the Playwright visual baselines on a runner
+        type: boolean
+        default: false
+
 jobs:
+  # Static checks and unit tests: fast, and fine to run anywhere.
   check:
     runs-on: ubuntu-latest
     steps:
@@ -16,3 +24,93 @@ jobs:
       - run: pip install pillow
       - run: sh check.sh
 
+  # The browser suite is here, not on the developer's machine. It is the heaviest
+  # thing in this repo (two browser engines, a 16-case visual matrix), and running
+  # it locally is what saturates a laptop. CI runners exist for exactly this.
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - run: pip install pillow
+
+      - name: Build the site
+        run: python3 build.py
+
+      # The demo's Flutter build is not committed here, so the poster (which is)
+      # is all the visual matrix captures. Regenerate it when APP_TOKEN is set.
+      - name: Generate the demo from the app
+        if: ${{ vars.APP_REPO != '' }}
+        env:
+          ZITOUNA_APP_DIR: ${{ github.workspace }}/../app
+        run: |
+          if [ -n "${{ secrets.APP_TOKEN }}" ]; then
+            git clone --depth 1 --branch web-target-experiment \
+              "https://x-access-token:${{ secrets.APP_TOKEN }}@github.com/${{ vars.APP_REPO }}.git" ../app
+            sh tools/build-demo.sh --app ../app
+            python3 build.py
+          else
+            echo "::notice::APP_TOKEN not set; using the committed posters"
+          fi
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Install browsers
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Run the browser suite
+        run: pnpm exec playwright test
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
+  # Regenerating the visual baselines needs a browser and the full matrix, so it
+  # belongs on a runner too. Dispatch this workflow with update_snapshots=true,
+  # download the artifact, review the diff, and commit it. A baseline update is
+  # only correct when the visual change was the intended one.
+  snapshots:
+    if: github.event_name == 'workflow_dispatch' && inputs.update_snapshots
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - run: pip install pillow
+
+      - name: Build the site
+        run: python3 build.py
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm exec playwright install --with-deps chromium
+
+      - name: Regenerate baselines
+        run: pnpm exec playwright test --update-snapshots
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: visual-baselines
+          path: tests/e2e/zitouna.spec.ts-snapshots/
+          retention-days: 14

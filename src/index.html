@@ -30,26 +30,16 @@
 <p class="lead">A free olive-grove companion that works without a connection or an account.</p>
 <div id="demo" class="demo">
 <noscript><p class="note">The interactive demo needs JavaScript.</p></noscript>
-<!-- Posters first, live app behind a tap. Both are generated from the app repo by
-     tools/build-demo.sh; nothing here is hand-drawn. The marketing page paints
-     without waiting for either: the posters are ordinary images. -->
-<figure class="phone">
-<img class="poster" src="/demo-posters/my-trees.webp" width="390" height="844"
-     alt="The app's My Trees screen: a parcel called Near the well, 25 Chemlali trees, with a ripeness gauge reading Soon.">
-<figcaption class="shots">
-<button type="button" class="shotbtn" data-shot="my-trees" aria-pressed="true"><img src="/demo-posters/my-trees.webp" alt="" width="390" height="844" loading="lazy"><span>My Trees</span></button>
-<button type="button" class="shotbtn" data-shot="overview" aria-pressed="false"><img src="/demo-posters/overview.webp" alt="" width="390" height="844" loading="lazy"><span>Overview</span></button>
-<button type="button" class="shotbtn" data-shot="ripeness" aria-pressed="false"><img src="/demo-posters/ripeness.webp" alt="" width="390" height="844" loading="lazy"><span>Ripeness</span></button>
-<button type="button" class="shotbtn" data-shot="harvest" aria-pressed="false"><img src="/demo-posters/harvest.webp" alt="" width="390" height="844" loading="lazy"><span>Harvest</span></button>
-<button type="button" class="shotbtn" data-shot="mill" aria-pressed="false"><img src="/demo-posters/mill.webp" alt="" width="390" height="844" loading="lazy"><span>Mill</span></button>
-<button type="button" class="shotbtn" data-shot="years" aria-pressed="false"><img src="/demo-posters/years.webp" alt="" width="390" height="844" loading="lazy"><span>Years</span></button>
-<button type="button" class="shotbtn" data-shot="settings" aria-pressed="false"><img src="/demo-posters/settings.webp" alt="" width="390" height="844" loading="lazy"><span>Settings</span></button>
-</figcaption>
-</figure>
-<div class="livetrap">
-<button type="button" class="btn live" id="golive">Try it live</button>
-<p class="note">The real app, running in this frame. It downloads once, then works offline.</p>
+<!-- Generated from the app repo by tools/build-demo.sh; nothing here is
+     hand-drawn. The poster is a screenshot of the real app, shown while the app
+     itself loads. The live app then replaces it and the poster is gone, so what
+     a visitor ends up looking at is the app, not a picture of it. The page never
+     waits for the engine to paint. -->
+<div class="stage">
+<img class="poster" src="/demo-posters/my-trees.webp" width="780" height="1688" fetchpriority="high"
+     alt="Zitouna on Android: the My Trees screen, listing four olive parcels with a ripeness gauge on each.">
 </div>
+<p class="note" id="demosrc">The real app, running in this page. It loads once, then works without a connection.</p>
 </div>
 <p><a class="btn" id="dl" href="{{DOWNLOAD_URL}}">Download</a></p>
 <p class="note">For Android 8 or newer. Early release {{VERSION}}.</p>

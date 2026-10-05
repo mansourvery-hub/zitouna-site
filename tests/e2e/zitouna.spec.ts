@@ -22,6 +22,12 @@ test.describe('Zitouna site visual regression', () => {
           await page.emulateMedia({ colorScheme: theme as 'light' | 'dark', reducedMotion: motion as 'reduce' | 'no-preference' });
           await page.setViewportSize({ width: viewport.width, height: viewport.height });
           
+          // The demo loads the live app as soon as it is in view, which is a few
+          // seconds of engine work at an unpredictable point. Block it here so the
+          // baseline captures the page's own layout deterministically; the live
+          // app is covered by its own test, which waits for it to actually paint.
+          await page.route('**/flutter-demo/**', (route) => route.abort());
+
           await page.goto(HOME);
           await page.waitForLoadState('networkidle');
           
@@ -167,85 +173,57 @@ test.describe('Scroll background color change', () => {
   });
 });
 
-test.describe('Generated demo (posters + live app)', () => {
-  const POSTERS = ['my-trees', 'overview', 'ripeness', 'harvest', 'mill', 'years', 'settings'];
-
+test.describe('Generated demo (the app itself, poster while it loads)', () => {
   test.beforeEach(async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto(process.env.BASE_URL ?? 'http://localhost:8082');
     await page.waitForLoadState('load');
-    await page.locator('#demo').scrollIntoViewIfNeeded();
   });
 
-  test('every poster is generated from the app and is present', async ({ page }) => {
-    // A poster is a screenshot of the real app, so it must exist and decode.
-    // A missing one means tools/build-demo.sh has not been run since a screen
-    // was added or renamed.
-    const shots = page.locator('.shotbtn');
-    await expect(shots).toHaveCount(POSTERS.length);
-    for (const name of POSTERS) {
-      // The button's visible label is "My Trees", not the slug, so select on the
-      // slug the button carries rather than on its text.
-      const img = page.locator(`.shotbtn[data-shot=${name}] img`);
-      await expect(img).toHaveAttribute('src', new RegExp(`/demo-posters/${name}\\.webp$`));
-      const natural = await img.evaluate((el: HTMLImageElement) => el.naturalWidth);
-      expect(natural, `poster ${name} failed to load`).toBeGreaterThan(0);
+  test('a poster of the real app is painted immediately', async ({ page }) => {
+    // The poster is a screenshot of the app, taken by tools/build-demo.sh. It has
+    // to exist and decode, or the section is a blank box until the engine lands.
+    await page.locator('#demo').scrollIntoViewIfNeeded();
+    const poster = page.locator('.stage .poster');
+    await expect(poster).toBeVisible();
+    const natural = await poster.evaluate((el: HTMLImageElement) => el.naturalWidth);
+    expect(natural, 'the poster failed to load').toBeGreaterThan(0);
+    // And it must describe itself, not be decorative.
+    expect(await poster.getAttribute('alt')).toMatch(/Zitouna on Android/);
+  });
+
+  test('the poster is phone-shaped, not letterboxed', async ({ page }) => {
+    await page.locator('#demo').scrollIntoViewIfNeeded();
+    for (const width of [360, 390]) {
+      await page.setViewportSize({ width, height: 844 });
+      const ratio = await page.locator('.stage').evaluate((n) => {
+        const r = n.getBoundingClientRect();
+        return r.width / r.height;
+      });
+      expect(ratio, `stage is not phone-shaped at ${width}px`).toBeCloseTo(0.463, 2);
     }
   });
 
-  test('the page paints without the live app: no iframe until asked', async ({ page }) => {
-    await expect(page.locator('.phone .poster')).toBeVisible();
-    await expect(page.locator('#golive')).toBeVisible();
-    await expect(page.locator('iframe')).toHaveCount(0);
-  });
-
-  test('switching screens swaps the poster and describes it', async ({ page }) => {
-    const poster = page.locator('.phone .poster');
-    const before = await poster.getAttribute('src');
-    await page.locator('.shotbtn[data-shot=ripeness]').click();
-    await expect(poster).toHaveAttribute('src', /ripeness\.webp$/);
-    const alt = await poster.getAttribute('alt');
-    expect(alt).toMatch(/Ripeness/);
-    expect(alt).not.toBe(before); // alt text must change with the image
-    await expect(page.locator('.shotbtn[data-shot=ripeness]')).toHaveAttribute('aria-pressed', 'true');
-    await expect(page.locator('.shotbtn[data-shot=my-trees]')).toHaveAttribute('aria-pressed', 'false');
-  });
-
-  /* The engine is ~4MB and is deliberately prefetched as the reader approaches
-     the demo, so "no request at all" is not the property to assert -- the
-     prefetch is wanted. What must hold is that nothing in the page *depends* on
-     it: the poster is painted and interactive with no engine bytes, no iframe
-     exists until someone taps, and the page is fully usable if the engine never
-     arrives. Asserting "zero requests" would forbid the prefetch that makes the
-     tap instant. Its weight is measured in HANDOFF-flutter-demo.md instead. */
-  test('first paint and the rest of the page never depend on the engine', async ({ page }) => {
-    // Block the engine entirely: if the page still works, it does not need it.
+  test('the page is fully usable with the engine blocked', async ({ page }) => {
+    // The poster is generated from the app, so the section still tells the truth
+    // when the app itself cannot start. Nothing may depend on the engine.
     await page.route('**/flutter-demo/**', (route) => route.abort());
-
-    await page.goto(process.env.BASE_URL ?? 'http://localhost:8082', { waitUntil: 'load' });
     await page.locator('#demo').scrollIntoViewIfNeeded();
-
-    await expect(page.locator('.phone .poster')).toBeVisible();
-    await expect(page.locator('.shotbtn').first()).toBeVisible();
-    await expect(page.locator('#golive')).toBeVisible();
-    expect(await page.locator('iframe').count(), 'an iframe was created without a tap').toBe(0);
-
-    // The page's own interactive bits still work.
+    await expect(page.locator('.stage .poster')).toBeVisible();
+    // The page's own calculator still works.
     await page.locator('#kg').fill('1000');
     await page.locator('#l').fill('180');
     await expect(page.locator('#rd')).toHaveText('16.49 %');
-
-    // And the poster switcher, which is the demo's whole first-load experience.
-    await page.locator('.shotbtn[data-shot=ripeness]').click();
-    await expect(page.locator('.phone .poster')).toHaveAttribute('src', /ripeness\.webp$/);
+    // No dead "Try it live" button left behind.
+    await expect(page.locator('#golive')).toHaveCount(0);
   });
 
-  test('tapping Try it live loads the real app in a frame', async ({ page }) => {
+  test('the real app loads in a frame and paints over the poster', async ({ page }) => {
     test.setTimeout(180_000);
-    await page.locator('#golive').click();
-    await expect(page.locator('iframe.fdlive')).toHaveCount(1);
+    await page.locator('#demo').scrollIntoViewIfNeeded();
+    await page.locator('iframe.fdlive').waitFor({ state: 'attached', timeout: 30_000 });
 
-    // The frame navigates after attach, so poll for it rather than sampling once.
+    // The frame navigates after attach, so poll rather than sample once.
     let frame = null as Awaited<ReturnType<typeof page.frames>>[number] | null;
     for (let i = 0; i < 60 && !frame; i++) {
       frame = page.frames().find((f) => f.url().includes('flutter-demo')) ?? null;
@@ -253,8 +231,10 @@ test.describe('Generated demo (posters + live app)', () => {
     }
     expect(frame, 'the demo frame never navigated to the app').not.toBeNull();
     await frame!.waitForSelector('flt-glass-pane, canvas, flutter-view', { timeout: 90_000 });
-    // Flutter paints into a canvas, so the check is the engine's own host element.
     expect(await frame!.evaluate(() => !!document.querySelector('flt-glass-pane'))).toBe(true);
+
+    // Once the app is up the poster must be out of the way, not stacked on top.
+    await expect(page.locator('.fdlive[data-ready]')).toHaveCount(1, { timeout: 60_000 });
   });
 
   test('the footer promise holds: nothing is requested off-origin', async ({ page }) => {
@@ -268,7 +248,6 @@ test.describe('Generated demo (posters + live app)', () => {
     });
     await page.goto(process.env.BASE_URL ?? 'http://localhost:8082', { waitUntil: 'load' });
     await page.locator('#demo').scrollIntoViewIfNeeded();
-    await page.locator('.shotbtn[data-shot=years]').click();
     await page.waitForTimeout(1500);
     expect(external, 'the site loaded something from another website').toEqual([]);
   });

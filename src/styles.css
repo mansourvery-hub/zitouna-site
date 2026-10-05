@@ -52,19 +52,19 @@ footer{margin-top:96px;border-top:1px solid currentColor;padding:36px 0 56px;fon
 
 
 /* ---------------------------------------------------------------- demo
-   Posters first: the section paints as ordinary images, and the live app is only
-   inserted on a tap. Phone frame + screen switcher. */
-.demo{max-width:420px;margin:48px auto 0}
-.phone{margin:0}
-.phone .poster{display:block;width:100%;height:auto;border:1px solid var(--edge);border-radius:36px;background:#F5F1E2}
-.shots{display:flex;gap:8px;margin-top:14px;overflow-x:auto;padding-bottom:6px;scrollbar-width:thin}
-.shotbtn{flex:0 0 auto;display:grid;gap:6px;justify-items:center;padding:6px;border:1px solid var(--edge);border-radius:14px;background:var(--surf);color:var(--soft);font:600 11px/1 var(--sans);cursor:pointer}
-.shotbtn img{display:block;width:34px;height:auto;border-radius:6px;opacity:.55}
-.shotbtn[aria-pressed=true]{border-color:var(--olive);color:var(--fg)}
-.shotbtn[aria-pressed=true] img{opacity:1}
-.shotbtn:hover img{opacity:.85}
-.livetrap{display:grid;gap:8px;justify-items:center;margin-top:18px}
-.livetrap .note{margin:0;text-align:center}
-.fdlive{display:block;width:100%;height:700px;border:1px solid var(--edge);border-radius:36px;background:#F5F1E2}
-/* Once the live app is up, the poster it replaces is gone, not stacked above it. */
-.demo.is-live .phone .poster{display:none}
+   The poster and the live app occupy the same box. The poster is underneath and
+   the iframe sits over it, so the swap is a repaint rather than a layout shift:
+   the reader sees the app arrive instead of watching a page change height. */
+.demo{width:min(390px,100%);margin:40px auto 0}
+.demo .note{margin:12px 0 0;text-align:center}
+/* The capture is 2x device pixels (780x1688); this is the CSS-pixel shape of the
+   same frame. Using the capture's raw height would make the box far too tall and
+   letterbox the screenshot. */
+.stage{position:relative;aspect-ratio:350/756;border-radius:32px;overflow:hidden;background:#F5F1E2;border:1px solid var(--edge)}
+.stage .poster{display:block;width:100%;height:100%;object-fit:cover;object-position:top center}
+.fdlive{position:absolute;inset:0;width:100%;height:100%;border:0;display:block;background:#F5F1E2}
+/* Until the frame reports it has loaded, keep the poster fully visible beneath
+   it. Once the app is up, the poster is hidden rather than left in the DOM. */
+.stage:has(.fdlive[data-ready]) .poster{visibility:hidden}
+.fdlive.failed{opacity:0;pointer-events:none}
+@media(prefers-color-scheme:dark){.stage,.fdlive{background:#191A11;border-color:var(--edge)}}
