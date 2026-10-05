@@ -34,27 +34,28 @@ Serve over HTTPS (the CSP uses upgrade-insecure-requests and HSTS is set).
 
 Not claimed: iOS, camera or photo ripeness, weather, map, source code or licence, store availability.
 
-## Demo: the app itself, running in the page
+## Demo: the app's screens, running natively in the page
 
-The demo is not a translation. It is the app itself — `ZitounaApp` with its router and all
-nine screens — compiled to Web (`flutter build web --target=lib/main_web_demo.dart
---no-web-resources-cdn`) and framed by the page in `src/flutter-demo/`. The only thing
-swapped out is persistence: four in-memory repositories seeded with two seasons of example
-data (`Zitouna/lib/demo/memory_repositories.dart`, on the app repo's `web-target-experiment`
-branch), because SQLite cannot run in a browser. Backup export/import and APK sharing
-present their normal failure messages instead of working.
+No downloads, no engine, no blank frame: the demo is plain HTML/CSS/JS (~150KB total)
+that renders instantly. It mirrors the app the ChessSRS way — generated inputs, translated
+structure, parity-tested:
 
-- `Zitouna/lib/main_web_demo.dart` (on the app repo's `web-target-experiment` branch) renders
-  the actual `RipenessArcGauge`, `StagePill` and `ZitounaTheme`, driven by the actual
-  `RipenessCalculator` and `RendementCalculator`. No Drift, no parcel hub — the demo entry
-  only mounts what renders without a live database.
-- Rebuild with a newer Flutter and copy `build/web` over `src/flutter-demo/`; `build.py`
-  rewrites the Flutter `<base href>` per deploy target and ships it.
-- `frame-ancestors 'self'` is allowed on the `/flutter-demo/*` paths only (see `_headers`);
-  the top page keeps `frame-ancestors 'none'`. CanvasKit is bundled locally
-  (`--no-web-resources-cdn`), so the framed app makes zero third-party requests.
-- `src/logic.js` remains for the static mill section (`src/main.js`) and is pinned by
-  `tests/logic.test.mjs`.
+- `src/demo.js` renders My Trees, the parcel screen with all five tabs (Overview, Ripeness,
+  Harvest, Mill, Years) and settings, from seeded example data (one parcel, two seasons).
+  Nothing persists; refresh and it resets.
+- Rules in `src/logic.js` are ported from the app (`ripeness_calculator.dart`,
+  `rendement_calculator.dart`, `pre_press_estimate.dart`, `alternate_bearing.dart`,
+  `weight_unit.dart`) and pinned by `tests/logic.test.mjs`. Gauge geometry in `src/gauge.js`
+  is ported from `ripeness_arc_gauge.dart`.
+- Tokens and strings are generated, not copied: `scripts/sync-design.js` extracts the
+  `ZitounaTheme` palettes into `src/demo-tokens.css`, and `scripts/sync-strings.js`
+  extracts the parcel tabs, stages, buckets and copy into `design/app-ui.json`, which
+  `src/app-ui.js` serves to the demo. Both have `--check` gates.
+- `tests/e2e/app-parity.spec.js` renders the real demo and asserts it against the manifest.
+  `KNOWN_GAPS` (backup export/import, APK sharing, map picker, non-English locales) are
+  features the demo intentionally omits; each must stay present in the manifest or the
+  spec fails.
+- `tools/check-app-sync.py` cross-checks the translated values against the Dart source.
 
 ## Checks (stage 5)
     sh check.sh      # build + static checks + unit tests + contrast; non-zero exit on failure

@@ -167,32 +167,73 @@ test.describe('Scroll background color change', () => {
   });
 });
 
-test.describe('Flutter demo embed', () => {
-  test('the page frames the real Flutter demo and it boots without errors', async ({ page }) => {
-    const errors: string[] = [];
-    page.on('pageerror', (e) => errors.push(String(e)));
-    page.on('console', (msg) => {
-      if (msg.type() === 'error') errors.push(msg.text());
-    });
-
+test.describe('Full demo navigation (My Trees, all tabs, settings)', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
     await page.goto(process.env.BASE_URL ?? 'http://localhost:8082');
-    await page.waitForLoadState('load');
-    const iframe = page.locator('iframe.fdemo');
-    await expect(iframe).toBeVisible();
-    await expect(iframe).toHaveAttribute('title', /.+/);
+    await page.waitForLoadState('networkidle');
+    await page.locator('#demo').scrollIntoViewIfNeeded();
+  });
 
-    // The framed app boots its engine and paints a canvas. The canvas element exists in the DOM
-    // before first paint, so also require a non-zero backing store and settle time.
-    const frame = page.frameLocator('iframe.fdemo');
-    const canvas = frame.locator('canvas');
-    await expect(canvas).toBeVisible({ timeout: 30000 });
-    await expect
-      .poll(async () => canvas.evaluate((el: HTMLCanvasElement) => el.width * el.height), {
-        timeout: 30000,
-      })
-      .toBeGreaterThan(0);
-    await page.waitForTimeout(8000);
+  const openParcel = async (page) => {
+    await page.locator('#demo .open').first().click();
+    await page.waitForTimeout(150);
+  };
 
-    expect(errors.filter((e) => !/favicon\.ico/.test(e))).toEqual([]);
+  test('My Trees lists the example parcel, Add Parcel grows the list', async ({ page }) => {
+    const cardsBefore = await page.locator('#demo .open').count();
+    expect(cardsBefore).toBeGreaterThanOrEqual(1);
+    await page.locator('#demo #addp').click();
+    await page.waitForTimeout(150);
+    expect(await page.locator('#demo .open').count()).toBe(cardsBefore + 1);
+  });
+
+  test('all five parcel tabs render in order', async ({ page }) => {
+    await openParcel(page);
+    const labels = await page.locator('#demo [role=tab]').evaluateAll((els) =>
+      els.map((e) => e.textContent.trim())
+    );
+    expect(labels).toEqual(['Overview', 'Ripeness', 'Harvest', 'Mill', 'Years']);
+  });
+
+  test('Harvest: saving an entry updates the season total', async ({ page }) => {
+    await openParcel(page);
+    await page.locator('#demo [role=tab][data-t=harvest]').click();
+    await page.waitForTimeout(150);
+    const before = await page.locator('#demo .v').first().textContent();
+    await page.locator('#demo #h-kg').fill('50');
+    await page.locator('#demo #h-save').click();
+    await page.waitForTimeout(200);
+    expect(await page.locator('#demo .v').first().textContent()).not.toEqual(before);
+  });
+
+  test('Years: forecast and yearly cards render', async ({ page }) => {
+    await openParcel(page);
+    await page.locator('#demo [role=tab][data-t=years]').click();
+    await page.waitForTimeout(150);
+    const text = await page.locator('#demo #p').textContent();
+    expect(text).toMatch(/Alternate-Bearing Forecast/);
+    expect(text).toMatch(/20\d\d/);
+  });
+
+  test('Settings: switching units changes displayed weights', async ({ page }) => {
+    await openParcel(page);
+    await page.locator('#demo #bk-set').click();
+    await page.waitForTimeout(150);
+    await page.locator('#demo [data-u=q]').click();
+    await page.waitForTimeout(150);
+    await page.locator('#demo #bk-trees').click();
+    await page.waitForTimeout(150);
+    await openParcel(page);
+    await page.locator('#demo [role=tab][data-t=harvest]').click();
+    await page.waitForTimeout(150);
+    expect(await page.locator('#demo #p').textContent()).toMatch(/q\b/);
+  });
+
+  test('back navigation returns to My Trees', async ({ page }) => {
+    await openParcel(page);
+    await page.locator('#demo #bk-trees').click();
+    await page.waitForTimeout(150);
+    await expect(page.locator('#demo #addp')).toBeVisible();
   });
 });

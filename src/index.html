@@ -19,6 +19,8 @@
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="/favicon.png" type="image/png">
 {{FONTS_LINK}}<link rel="stylesheet" href="/styles.css">
+<link rel="stylesheet" href="/demo-tokens.css">
+<link rel="stylesheet" href="/demo.css">
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Zitouna","alternateName":"الزيتونة","description":"A free, offline olive-grove companion: ripeness counts, harvest logs and mill yield.","operatingSystem":"Android 8.0 or newer","applicationCategory":"LifestyleApplication","softwareVersion":"{{VERSION}}","inLanguage":["en","fr","ar"],"offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"url":"{{SITE}}/"}</script>
 </head>
 <body>
@@ -28,7 +30,7 @@
 <section class="hero" id="top" data-stage="hero"><div class="w">
 <h1>Know your olives before the expert does.</h1>
 <p class="lead">A free olive-grove companion that works without a connection or an account.</p>
-<div id="demo"><noscript><p class="note">The interactive demo needs JavaScript.</p></noscript><div class="fdemo-wrap"><div class="fdemo-loading" role="status"><span class="spin" aria-hidden="true"></span><p>Loading the interactive demo&hellip;<br><small>The app downloads once, then runs offline in this frame.</small></p></div><iframe class="fdemo" src="/flutter-demo/" title="Interactive Zitouna demo: the real app running in your browser with example data" loading="lazy"></iframe></div></div>
+<div id="demo"><noscript><p class="note">The interactive demo needs JavaScript.</p></noscript></div>
 <p><a class="btn" id="dl" href="{{DOWNLOAD_URL}}">Download</a></p>
 <p class="note">For Android 8 or newer. Early release {{VERSION}}.</p>
 </div></section>
@@ -58,4 +60,6 @@
 <div class="w"><footer><p>&copy; {{OPERATOR}}. Zitouna is an independent app.</p><p>This site sets no cookies, uses no analytics and loads nothing from other websites.</p><p>Contact: {{CONTACT}}. <a href="{{SUPPORT_URL}}">Support Zitouna</a>.</p></footer></div></section>
 </main>
 <script type="module" src="/main.js"></script>
+<script src="/app-ui.js"></script>
+<script type="module" src="/demo.js"></script>
 </body></html>
