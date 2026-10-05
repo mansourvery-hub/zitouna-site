@@ -50,6 +50,12 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
+      # The capture step drives a real browser, so the browser has to exist
+      # before it runs. Gating this on the token keeps it off the fast path.
+      - name: Install the browser
+        if: env.HAS_APP_TOKEN == 'true'
+        run: pnpm exec playwright install --with-deps chromium
+
       - name: Generate the demo from the app
         if: env.HAS_APP_TOKEN == 'true'
         env:
