@@ -180,6 +180,14 @@ test.describe('Generated demo (the app itself, poster while it loads)', () => {
     await page.waitForLoadState('load');
   });
 
+  /* Every screenshot in this file must be deterministic. The demo loads the live
+     app as soon as it is in view, which lands at an unpredictable moment, so the
+     visual matrix blocks it and captures the poster instead. Without this the
+     baselines recorded whichever of the two happened to be on screen. */
+  test.beforeEach(async ({ page }) => {
+    await page.route('**/flutter-demo/**', (route) => route.abort());
+  });
+
   test('a poster of the real app is painted immediately', async ({ page }) => {
     // The poster is a screenshot of the app, taken by tools/build-demo.sh. It has
     // to exist and decode, or the section is a blank box until the engine lands.
@@ -218,8 +226,10 @@ test.describe('Generated demo (the app itself, poster while it loads)', () => {
     await expect(page.locator('#golive')).toHaveCount(0);
   });
 
+  // Undoes the suite-wide block: this is the one test that needs the real engine.
   test('the real app loads in a frame and paints over the poster', async ({ page }) => {
     test.setTimeout(180_000);
+    await page.unroute('**/flutter-demo/**');
     await page.locator('#demo').scrollIntoViewIfNeeded();
     await page.locator('iframe.fdlive').waitFor({ state: 'attached', timeout: 30_000 });
 

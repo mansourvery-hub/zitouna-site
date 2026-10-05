@@ -47,7 +47,7 @@ footer{margin-top:96px;border-top:1px solid currentColor;padding:36px 0 56px;fon
 .no-js .s-g{--bg:var(--g-bg);--fg:var(--g-fg)}.no-js .s-y{--bg:var(--y-bg);--fg:var(--y-fg)}.no-js .s-w{--bg:var(--w-bg);--fg:var(--w-fg)}.no-js .s-k{--bg:var(--k-bg);--fg:var(--k-fg)}
 .no-js .s-g,.no-js .s-y,.no-js .s-w,.no-js .s-k{background:var(--bg);color:var(--fg)}
 @media(max-width:820px){.how .w,.mill .w,.end .w,.pr{grid-template-columns:1fr}.how h2{position:static}.how li{grid-template-columns:48px 1fr}.logo span{display:none}}
-@media(prefers-reduced-motion:reduce){html,body,header,.btn{transition:none}html{scroll-behavior:auto}}
+@media(prefers-reduced-motion:reduce){html,body,header,.btn,.fdlive{transition:none}html{scroll-behavior:auto}}
 #dl{margin-top:44px}
 
 
@@ -62,9 +62,12 @@ footer{margin-top:96px;border-top:1px solid currentColor;padding:36px 0 56px;fon
    letterbox the screenshot. */
 .stage{position:relative;aspect-ratio:350/756;border-radius:32px;overflow:hidden;background:#F5F1E2;border:1px solid var(--edge)}
 .stage .poster{display:block;width:100%;height:100%;object-fit:cover;object-position:top center}
-.fdlive{position:absolute;inset:0;width:100%;height:100%;border:0;display:block;background:#F5F1E2}
-/* Until the frame reports it has loaded, keep the poster fully visible beneath
-   it. Once the app is up, the poster is hidden rather than left in the DOM. */
-.stage:has(.fdlive[data-ready]) .poster{visibility:hidden}
+/* The frame stays transparent until the app has painted, so the poster is
+   whatever is visible at every moment. Hiding the poster outright (visibility)
+   left an empty box whenever the frame reported ready but had not yet drawn --
+   which is exactly what the visual baseline captured. Fading the frame in on top
+   has no such window. */
+.fdlive{position:absolute;inset:0;width:100%;height:100%;border:0;display:block;background:transparent;opacity:0;transition:opacity .25s}
+.fdlive[data-ready]{opacity:1}
 .fdlive.failed{opacity:0;pointer-events:none}
 @media(prefers-color-scheme:dark){.stage,.fdlive{background:#191A11;border-color:var(--edge)}}
