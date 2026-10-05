@@ -19,18 +19,38 @@
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="/favicon.png" type="image/png">
 {{FONTS_LINK}}<link rel="stylesheet" href="/styles.css">
-<link rel="stylesheet" href="/demo-tokens.css">
-<link rel="stylesheet" href="/demo.css">
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Zitouna","alternateName":"الزيتونة","description":"A free, offline olive-grove companion: ripeness counts, harvest logs and mill yield.","operatingSystem":"Android 8.0 or newer","applicationCategory":"LifestyleApplication","softwareVersion":"{{VERSION}}","inLanguage":["en","fr","ar"],"offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"url":"{{SITE}}/"}</script>
 </head>
-<body>
+<body data-demo-url="{{DEMO_URL}}">
 <a class="skip" href="#main">Skip to content</a>
 <header><div class="w"><a class="logo" href="#top" aria-label="Zitouna, back to top">Zitouna<span lang="ar" dir="rtl">الزيتونة</span></a><a class="btn sm" href="{{DOWNLOAD_URL}}">Download</a></div></header>
 <main id="main">
 <section class="hero" id="top" data-stage="hero"><div class="w">
 <h1>Know your olives before the expert does.</h1>
 <p class="lead">A free olive-grove companion that works without a connection or an account.</p>
-<div id="demo"><noscript><p class="note">The interactive demo needs JavaScript.</p></noscript></div>
+<div id="demo" class="demo">
+<noscript><p class="note">The interactive demo needs JavaScript.</p></noscript>
+<!-- Posters first, live app behind a tap. Both are generated from the app repo by
+     tools/build-demo.sh; nothing here is hand-drawn. The marketing page paints
+     without waiting for either: the posters are ordinary images. -->
+<figure class="phone">
+<img class="poster" src="/demo-posters/my-trees.webp" width="390" height="844"
+     alt="The app's My Trees screen: a parcel called Near the well, 25 Chemlali trees, with a ripeness gauge reading Soon.">
+<figcaption class="shots">
+<button type="button" class="shotbtn" data-shot="my-trees" aria-pressed="true"><img src="/demo-posters/my-trees.webp" alt="" width="390" height="844" loading="lazy"><span>My Trees</span></button>
+<button type="button" class="shotbtn" data-shot="overview" aria-pressed="false"><img src="/demo-posters/overview.webp" alt="" width="390" height="844" loading="lazy"><span>Overview</span></button>
+<button type="button" class="shotbtn" data-shot="ripeness" aria-pressed="false"><img src="/demo-posters/ripeness.webp" alt="" width="390" height="844" loading="lazy"><span>Ripeness</span></button>
+<button type="button" class="shotbtn" data-shot="harvest" aria-pressed="false"><img src="/demo-posters/harvest.webp" alt="" width="390" height="844" loading="lazy"><span>Harvest</span></button>
+<button type="button" class="shotbtn" data-shot="mill" aria-pressed="false"><img src="/demo-posters/mill.webp" alt="" width="390" height="844" loading="lazy"><span>Mill</span></button>
+<button type="button" class="shotbtn" data-shot="years" aria-pressed="false"><img src="/demo-posters/years.webp" alt="" width="390" height="844" loading="lazy"><span>Years</span></button>
+<button type="button" class="shotbtn" data-shot="settings" aria-pressed="false"><img src="/demo-posters/settings.webp" alt="" width="390" height="844" loading="lazy"><span>Settings</span></button>
+</figcaption>
+</figure>
+<div class="livetrap">
+<button type="button" class="btn live" id="golive">Try it live</button>
+<p class="note">The real app, running in this frame. It downloads once, then works offline.</p>
+</div>
+</div>
 <p><a class="btn" id="dl" href="{{DOWNLOAD_URL}}">Download</a></p>
 <p class="note">For Android 8 or newer. Early release {{VERSION}}.</p>
 </div></section>
@@ -60,6 +80,4 @@
 <div class="w"><footer><p>&copy; {{OPERATOR}}. Zitouna is an independent app.</p><p>This site sets no cookies, uses no analytics and loads nothing from other websites.</p><p>Contact: {{CONTACT}}. <a href="{{SUPPORT_URL}}">Support Zitouna</a>.</p></footer></div></section>
 </main>
 <script type="module" src="/main.js"></script>
-<script src="/app-ui.js"></script>
-<script type="module" src="/demo.js"></script>
 </body></html>

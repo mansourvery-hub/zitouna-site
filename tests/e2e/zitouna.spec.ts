@@ -167,72 +167,109 @@ test.describe('Scroll background color change', () => {
   });
 });
 
-test.describe('Full demo navigation (My Trees, all tabs, settings)', () => {
+test.describe('Generated demo (posters + live app)', () => {
+  const POSTERS = ['my-trees', 'overview', 'ripeness', 'harvest', 'mill', 'years', 'settings'];
+
   test.beforeEach(async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto(process.env.BASE_URL ?? 'http://localhost:8082');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('load');
     await page.locator('#demo').scrollIntoViewIfNeeded();
   });
 
-  const openParcel = async (page) => {
-    await page.locator('#demo .open').first().click();
-    await page.waitForTimeout(150);
-  };
-
-  test('My Trees lists the example parcel, Add Parcel grows the list', async ({ page }) => {
-    const cardsBefore = await page.locator('#demo .open').count();
-    expect(cardsBefore).toBeGreaterThanOrEqual(1);
-    await page.locator('#demo #addp').click();
-    await page.waitForTimeout(150);
-    expect(await page.locator('#demo .open').count()).toBe(cardsBefore + 1);
+  test('every poster is generated from the app and is present', async ({ page }) => {
+    // A poster is a screenshot of the real app, so it must exist and decode.
+    // A missing one means tools/build-demo.sh has not been run since a screen
+    // was added or renamed.
+    const shots = page.locator('.shotbtn');
+    await expect(shots).toHaveCount(POSTERS.length);
+    for (const name of POSTERS) {
+      // The button's visible label is "My Trees", not the slug, so select on the
+      // slug the button carries rather than on its text.
+      const img = page.locator(`.shotbtn[data-shot=${name}] img`);
+      await expect(img).toHaveAttribute('src', new RegExp(`/demo-posters/${name}\\.webp$`));
+      const natural = await img.evaluate((el: HTMLImageElement) => el.naturalWidth);
+      expect(natural, `poster ${name} failed to load`).toBeGreaterThan(0);
+    }
   });
 
-  test('all five parcel tabs render in order', async ({ page }) => {
-    await openParcel(page);
-    const labels = await page.locator('#demo [role=tab]').evaluateAll((els) =>
-      els.map((e) => e.textContent.trim())
-    );
-    expect(labels).toEqual(['Overview', 'Ripeness', 'Harvest', 'Mill', 'Years']);
+  test('the page paints without the live app: no iframe until asked', async ({ page }) => {
+    await expect(page.locator('.phone .poster')).toBeVisible();
+    await expect(page.locator('#golive')).toBeVisible();
+    await expect(page.locator('iframe')).toHaveCount(0);
   });
 
-  test('Harvest: saving an entry updates the season total', async ({ page }) => {
-    await openParcel(page);
-    await page.locator('#demo [role=tab][data-t=harvest]').click();
-    await page.waitForTimeout(150);
-    const before = await page.locator('#demo .v').first().textContent();
-    await page.locator('#demo #h-kg').fill('50');
-    await page.locator('#demo #h-save').click();
-    await page.waitForTimeout(200);
-    expect(await page.locator('#demo .v').first().textContent()).not.toEqual(before);
+  test('switching screens swaps the poster and describes it', async ({ page }) => {
+    const poster = page.locator('.phone .poster');
+    const before = await poster.getAttribute('src');
+    await page.locator('.shotbtn[data-shot=ripeness]').click();
+    await expect(poster).toHaveAttribute('src', /ripeness\.webp$/);
+    const alt = await poster.getAttribute('alt');
+    expect(alt).toMatch(/Ripeness/);
+    expect(alt).not.toBe(before); // alt text must change with the image
+    await expect(page.locator('.shotbtn[data-shot=ripeness]')).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.locator('.shotbtn[data-shot=my-trees]')).toHaveAttribute('aria-pressed', 'false');
   });
 
-  test('Years: forecast and yearly cards render', async ({ page }) => {
-    await openParcel(page);
-    await page.locator('#demo [role=tab][data-t=years]').click();
-    await page.waitForTimeout(150);
-    const text = await page.locator('#demo #p').textContent();
-    expect(text).toMatch(/Alternate-Bearing Forecast/);
-    expect(text).toMatch(/20\d\d/);
+  /* The engine is ~4MB and is deliberately prefetched as the reader approaches
+     the demo, so "no request at all" is not the property to assert -- the
+     prefetch is wanted. What must hold is that nothing in the page *depends* on
+     it: the poster is painted and interactive with no engine bytes, no iframe
+     exists until someone taps, and the page is fully usable if the engine never
+     arrives. Asserting "zero requests" would forbid the prefetch that makes the
+     tap instant. Its weight is measured in HANDOFF-flutter-demo.md instead. */
+  test('first paint and the rest of the page never depend on the engine', async ({ page }) => {
+    // Block the engine entirely: if the page still works, it does not need it.
+    await page.route('**/flutter-demo/**', (route) => route.abort());
+
+    await page.goto(process.env.BASE_URL ?? 'http://localhost:8082', { waitUntil: 'load' });
+    await page.locator('#demo').scrollIntoViewIfNeeded();
+
+    await expect(page.locator('.phone .poster')).toBeVisible();
+    await expect(page.locator('.shotbtn').first()).toBeVisible();
+    await expect(page.locator('#golive')).toBeVisible();
+    expect(await page.locator('iframe').count(), 'an iframe was created without a tap').toBe(0);
+
+    // The page's own interactive bits still work.
+    await page.locator('#kg').fill('1000');
+    await page.locator('#l').fill('180');
+    await expect(page.locator('#rd')).toHaveText('16.49 %');
+
+    // And the poster switcher, which is the demo's whole first-load experience.
+    await page.locator('.shotbtn[data-shot=ripeness]').click();
+    await expect(page.locator('.phone .poster')).toHaveAttribute('src', /ripeness\.webp$/);
   });
 
-  test('Settings: switching units changes displayed weights', async ({ page }) => {
-    await page.locator('#demo #go-set').click();
-    await page.waitForTimeout(150);
-    await page.locator('#demo [data-u=q]').click();
-    await page.waitForTimeout(150);
-    await page.locator('#demo #bk-trees').click();
-    await page.waitForTimeout(150);
-    await openParcel(page);
-    await page.locator('#demo [role=tab][data-t=harvest]').click();
-    await page.waitForTimeout(150);
-    expect(await page.locator('#demo #p').textContent()).toMatch(/q\b/);
+  test('tapping Try it live loads the real app in a frame', async ({ page }) => {
+    test.setTimeout(180_000);
+    await page.locator('#golive').click();
+    await expect(page.locator('iframe.fdlive')).toHaveCount(1);
+
+    // The frame navigates after attach, so poll for it rather than sampling once.
+    let frame = null as Awaited<ReturnType<typeof page.frames>>[number] | null;
+    for (let i = 0; i < 60 && !frame; i++) {
+      frame = page.frames().find((f) => f.url().includes('flutter-demo')) ?? null;
+      if (!frame) await page.waitForTimeout(500);
+    }
+    expect(frame, 'the demo frame never navigated to the app').not.toBeNull();
+    await frame!.waitForSelector('flt-glass-pane, canvas, flutter-view', { timeout: 90_000 });
+    // Flutter paints into a canvas, so the check is the engine's own host element.
+    expect(await frame!.evaluate(() => !!document.querySelector('flt-glass-pane'))).toBe(true);
   });
 
-  test('back navigation returns to My Trees', async ({ page }) => {
-    await openParcel(page);
-    await page.locator('#demo #bk-trees').click();
-    await page.waitForTimeout(150);
-    await expect(page.locator('#demo #addp')).toBeVisible();
+  test('the footer promise holds: nothing is requested off-origin', async ({ page }) => {
+    const external: string[] = [];
+    page.on('request', (r) => {
+      const u = r.url();
+      if (!u.startsWith('http://localhost') && !u.startsWith('http://127.0.0.1')) {
+        const host = process.env.BASE_URL ? new URL(process.env.BASE_URL).host : 'localhost';
+        if (!u.startsWith(`http://${host}`) && !u.startsWith(`https://${host}`)) external.push(u);
+      }
+    });
+    await page.goto(process.env.BASE_URL ?? 'http://localhost:8082', { waitUntil: 'load' });
+    await page.locator('#demo').scrollIntoViewIfNeeded();
+    await page.locator('.shotbtn[data-shot=years]').click();
+    await page.waitForTimeout(1500);
+    expect(external, 'the site loaded something from another website').toEqual([]);
   });
 });

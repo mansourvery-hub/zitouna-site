@@ -60,11 +60,15 @@ def prefix_asset(match):
         return match.group(0)  # Already prefixed
     return match.group(1) + '="' + prefix(path) + '"'
 html = re.sub(r'(href|src)="(/[^"]*)"', prefix_asset, html)
+# The demo's location differs per deploy target (GitHub Pages serves from a
+# subpath), so build.py stamps the real URL into the page instead of the page
+# guessing it.
+html = html.replace("{{DEMO_URL}}", (BASE_PATH + "/flutter-demo/") if BASE_PATH else "/flutter-demo/")
 (DIST / "index.html").write_text(html)
 if faces: (DIST / "fonts.css").write_text("\n".join(faces))
 css = re.sub(r"\s+", " ", re.sub(r"/\*.*?\*/", "", (SRC / "styles.css").read_text(), flags=re.S))
 (DIST / "styles.css").write_text(css)
-for f in ("main.js", "logic.js", "gauge.js", "demo.js", "demo.css", "demo-tokens.css", "app-ui.js", "favicon.png"): shutil.copy(SRC / f, DIST / f)
+for f in ("main.js", "logic.js", "favicon.png"): shutil.copy(SRC / f, DIST / f)
 
 
 # For GitHub Pages subpath, ensure assets at BASE_PATH (dist/BASE_PATH.lstrip("/"))
@@ -73,7 +77,7 @@ if BASE_PATH:
     base_dir = DIST / BASE_PATH.lstrip("/")
     (base_dir / "fonts").mkdir(parents=True, exist_ok=True)
     for f in (SRC / "fonts").glob("*.woff2"): shutil.copy(f, base_dir / "fonts" / f.name)
-    for f in ("main.js", "logic.js", "gauge.js", "demo.js", "demo.css", "demo-tokens.css", "app-ui.js", "favicon.png"):
+    for f in ("main.js", "logic.js", "favicon.png"):
         shutil.copy(SRC / f, base_dir / f)
     # Copy generated/root files (after CSS generation)
     for f in ["styles.css", "fonts.css", "favicon.png", "og.png"]:
@@ -87,26 +91,73 @@ if BASE_PATH:
         if not (DIST / "fonts" / f.name).exists():
             shutil.copy(f, DIST / "fonts" / f.name)
 
+# ---------------------------------------------------------------- demo assets
+# The demo is generated from the app by tools/build-demo.sh, which drops two
+# directories in src/: the screen posters (what visitors see first) and the live
+# Flutter build (only fetched when someone taps "Try it live"). Both are shipped
+# under BASE_PATH so the framed app's own absolute paths resolve.
+DEMO_POSTERS = SRC / "demo-posters"
+FLUTTER_DEMO = SRC / "flutter-demo"
+
+
+def ship_demo(root):
+    """Copy the demo into `root` (dist root, or base_dir for Pages)."""
+    if DEMO_POSTERS.exists():
+        dst = root / "demo-posters"
+        if dst.exists():
+            shutil.rmtree(dst)
+        shutil.copytree(DEMO_POSTERS, dst)
+    if FLUTTER_DEMO.exists():
+        dst = root / "flutter-demo"
+        if dst.exists():
+            shutil.rmtree(dst)
+        shutil.copytree(FLUTTER_DEMO, dst)
+        # The Flutter scaffold ships <base href="/">, which would make the
+        # framed app request assets from the site root instead of its own
+        # directory. Rewrite it to the path the build is actually served from.
+        index = dst / "index.html"
+        if index.exists():
+            html = index.read_text()
+            base = (BASE_PATH + "/flutter-demo/") if BASE_PATH else "/flutter-demo/"
+            html = re.sub(r'<base href="[^"]*">', f'<base href="{base}">', html)
+            index.write_text(html)
+
+
+ship_demo(DIST)
+
 # Disable Jekyll on GitHub Pages (also in base_dir if needed)
 (DIST / ".nojekyll").write_text("")
 if BASE_PATH:
     base_dir = DIST / BASE_PATH.lstrip("/")
     (base_dir / ".nojekyll").write_text("")
+    # Pages serves dist/ at BASE_PATH, so the demo must live under base_dir too.
+    ship_demo(base_dir)
 
 
 # 3. SEO and security files
 S = cfg["SITE"]
 (DIST / "robots.txt").write_text(f"User-agent: *\nAllow: /\nSitemap: {S}/sitemap.xml\n")
 (DIST / "sitemap.xml").write_text(f'<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url><loc>{S}/</loc></url></urlset>\n')
-CSP = "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; font-src 'self'; connect-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; upgrade-insecure-requests"
-# The Flutter demo is framed by our own page, so its paths must allow it.
-# Specific paths first: hosts apply the first matching rule.
-# The framed app is our own compiled Dart (same origin), but the Flutter engine needs:
-# wasm-unsafe-eval (CanvasKit WASM compile), unsafe-inline styles (engine-injected),
-# connect-src 'self' (FontManifest.json, canvaskit.wasm fetch), base-uri 'self'.
-# CanvasKit itself is bundled locally (FLUTTER_WEB_CANVASKIT_URL) — no third-party requests.
+CSP_TOP = "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; font-src 'self'; connect-src 'none'; base-uri 'none'; form-action 'none'; frame-src 'self'; frame-ancestors 'none'; upgrade-insecure-requests"
+# The framed Flutter app lives under /flutter-demo/*, and needs a looser policy
+# than the marketing page:
+#   frame-ancestors 'self'  it is framed by our own page
+#   script-src wasm-unsafe-eval  CanvasKit compiles WebAssembly at runtime
+#   style-src unsafe-inline  the engine injects style elements
+#   connect-src 'self'  it fetches canvaskit.wasm and FontManifest.json
+# CanvasKit and the fonts are bundled locally (--no-web-resources-cdn), so even
+# here nothing leaves our origin.
+CSP_DEMO = ("default-src 'none'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; "
+            "img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; base-uri 'self'; "
+            "form-action 'none'; frame-ancestors 'self'")
+# _headers patterns are matched against the request path, which on a subpath
+# deploy still includes the project prefix (/zitouna-site/...). Without the
+# prefix the per-path rules never match, and the framed app silently inherits the
+# top page's frame-ancestors 'none' -- which blocks the iframe with a CSP error.
+P = BASE_PATH
+
 (DIST / "_headers").write_text(f"""/*
-  Content-Security-Policy: {CSP}
+  Content-Security-Policy: {CSP_TOP}
   Strict-Transport-Security: max-age=31536000; includeSubDomains
   X-Content-Type-Options: nosniff
   Referrer-Policy: no-referrer
@@ -116,12 +167,29 @@ CSP = "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; 
   Cache-Control: public, max-age=0, must-revalidate
 /*.js
   Cache-Control: public, max-age=3600
-/fonts/*
+{P}/fonts/*
   Cache-Control: public, max-age=31536000, immutable
 /og.png
   Cache-Control: public, max-age=86400
 /*.css
   Cache-Control: public, max-age=3600
+# The framed app is a separate origin-relative app with its own needs, so it gets
+# its own policy. Listed after the catch-all: hosts apply the first match.
+{P}/flutter-demo/*
+  Content-Security-Policy: {CSP_DEMO}
+{P}/flutter-demo/*.js
+  Content-Security-Policy: {CSP_DEMO}
+{P}/flutter-demo/*.wasm
+  Content-Security-Policy: {CSP_DEMO}
+  Cache-Control: public, max-age=31536000, immutable
+{P}/flutter-demo/assets/*
+  Content-Security-Policy: {CSP_DEMO}
+  Cache-Control: public, max-age=31536000, immutable
+{P}/flutter-demo/canvaskit/*
+  Content-Security-Policy: {CSP_DEMO}
+  Cache-Control: public, max-age=31536000, immutable
+{P}/demo-posters/*
+  Cache-Control: public, max-age=86400
 """)
 
 (ROOT / "deploy").mkdir(exist_ok=True)

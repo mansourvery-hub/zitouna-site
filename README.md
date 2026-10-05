@@ -34,28 +34,37 @@ Serve over HTTPS (the CSP uses upgrade-insecure-requests and HSTS is set).
 
 Not claimed: iOS, camera or photo ripeness, weather, map, source code or licence, store availability.
 
-## Demo: the app's screens, running natively in the page
+## Demo: generated from the app, never hand-written
 
-No downloads, no engine, no blank frame: the demo is plain HTML/CSS/JS (~150KB total)
-that renders instantly. It mirrors the app the ChessSRS way — generated inputs, translated
-structure, parity-tested:
+The demo is the real Flutter app, and the site is generated from it. One command
+is the whole update path:
 
-- `src/demo.js` renders My Trees, the parcel screen with all five tabs (Overview, Ripeness,
-  Harvest, Mill, Years) and settings, from seeded example data (one parcel, two seasons).
-  Nothing persists; refresh and it resets.
-- Rules in `src/logic.js` are ported from the app (`ripeness_calculator.dart`,
-  `rendement_calculator.dart`, `pre_press_estimate.dart`, `alternate_bearing.dart`,
-  `weight_unit.dart`) and pinned by `tests/logic.test.mjs`. Gauge geometry in `src/gauge.js`
-  is ported from `ripeness_arc_gauge.dart`.
-- Tokens and strings are generated, not copied: `scripts/sync-design.js` extracts the
-  `ZitounaTheme` palettes into `src/demo-tokens.css`, and `scripts/sync-strings.js`
-  extracts the parcel tabs, stages, buckets and copy into `design/app-ui.json`, which
-  `src/app-ui.js` serves to the demo. Both have `--check` gates.
-- `tests/e2e/app-parity.spec.js` renders the real demo and asserts it against the manifest.
-  `KNOWN_GAPS` (backup export/import, APK sharing, map picker, non-English locales) are
-  features the demo intentionally omits; each must stay present in the manifest or the
-  spec fails.
-- `tools/check-app-sync.py` cross-checks the translated values against the Dart source.
+```sh
+sh tools/build-demo.sh            # build the app, capture screens, vendor it
+```
+
+It runs `flutter build web --target=lib/main_web_demo.dart --release
+--no-web-resources-cdn` in the app repo (branch `web-target-experiment`), then
+screenshots the running app's screens as WebP posters. The page shows those
+posters in a phone frame, and a "Try it live" tap loads the actual app in an
+iframe. Change a colour, a label or a menu in the app, re-run the script, and the
+site follows.
+
+Nothing on the page is hand-translated. The previous HTML/CSS/JS demo was, and
+that is why it drifted from the app: every divergence was a second copy to
+maintain. Its files (`demo.js`, `gauge.js`, `demo.css`, `demo-tokens.css`,
+`app-ui.js`, `design/app-ui.json`, the `sync-*.js` generators, the parity spec)
+are gone.
+
+- `tools/capture-demo.mjs` drives the real app through Flutter's semantics tree
+  and refuses to write a poster it cannot confirm, so renaming a screen fails the
+  build instead of quietly shipping a stale screenshot.
+- The posters cost 273KB. The live build is ~4MB compressed and is only fetched
+  when someone taps, prefetched at low priority as the demo approaches the
+  viewport. First paint never waits on the engine -- asserted by a test that
+  aborts every engine request and checks the page still works.
+- `--no-web-resources-cdn` is required, not optional: it keeps CanvasKit and the
+  fonts on our own origin, which is what lets the footer promise hold.
 
 ## Checks (stage 5)
     sh check.sh      # build + static checks + unit tests + contrast; non-zero exit on failure

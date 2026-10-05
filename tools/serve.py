@@ -28,17 +28,31 @@ def parse_headers(path: Path):
     return result
 
 def match_path(request_path: str, patterns: dict):
-    """Find matching headers for a request path"""
+    """Headers that apply to a request path.
+
+    Netlify/Cloudflare `_headers` merge every matching block, so this does too.
+    Order in the file does not decide precedence: a path matching both `/*` and
+    `/flutter-demo/*` gets headers from both. Getting this wrong hides real bugs
+    -- a `frame-ancestors 'none'` on the top page must not silently follow the
+    framed app and block it, which is exactly what first-match-wins did here.
+    """
+    out = []
+    seen = set()
     for pattern, headers in patterns.items():
-        if pattern == "/*" or pattern == "/":
-            return headers
-        if pattern.endswith("*"):
-            prefix = pattern[:-1]
-            if request_path.startswith(prefix):
-                return headers
-        if request_path == pattern:
-            return headers
-    return []
+        matched = (
+            pattern in ("/*", "/")
+            or (pattern.endswith("*") and request_path.startswith(pattern[:-1]))
+            or request_path == pattern
+        )
+        if not matched:
+            continue
+        for header, value in headers:
+            # A more specific pattern is listed later in _headers and wins for
+            # the same header name; keep the last one written for that name.
+            if header.lower() in {h.lower() for h, _ in out}:
+                out = [(h, v) for h, v in out if h.lower() != header.lower()]
+            out.append((header, value))
+    return out
 
 class HeaderHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
     def __init__(self, *args, headers_map=None, **kwargs):

@@ -18,22 +18,48 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Python
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
 
-      - name: Install Pillow
-        run: pip install pillow
+      - run: pip install pillow
+
+      # The demo is generated from the app, so CI regenerates it rather than
+      # trusting a committed copy: the Flutter build is 26MB and must never go
+      # stale against the app it is a screenshot of.
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.47.4
+          channel: stable
+          cache: true
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - run: pnpm install --frozen-lockfile
+
+      # TODO: needs the app repo URL. It is a variable rather than a literal so
+      # the fork-safe default works without editing this file; set APP_REPO in the
+      # repository settings to "owner/name" of the Flutter app.
+      - name: Generate the demo from the app
+        env:
+          ZITOUNA_APP_DIR: ${{ github.workspace }}/../app
+        run: |
+          if [ -z "${{ vars.APP_REPO }}" ]; then
+            echo "::error::repository variable APP_REPO is not set (owner/name of the Flutter app repo)"
+            exit 1
+          fi
+          git clone --depth 1 --branch web-target-experiment \
+            "https://github.com/${{ vars.APP_REPO }}.git" ../app
+          sh tools/build-demo.sh --app ../app
 
       - name: Build site
         run: python3 build.py
 
-      - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@v3
         with:
           path: ./dist
 
@@ -44,6 +70,4 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+      - uses: actions/deploy-pages@v4

@@ -50,3 +50,21 @@ footer{margin-top:96px;border-top:1px solid currentColor;padding:36px 0 56px;fon
 @media(prefers-reduced-motion:reduce){html,body,header,.btn{transition:none}html{scroll-behavior:auto}}
 #dl{margin-top:44px}
 
+
+/* ---------------------------------------------------------------- demo
+   Posters first: the section paints as ordinary images, and the live app is only
+   inserted on a tap. Phone frame + screen switcher. */
+.demo{max-width:420px;margin:48px auto 0}
+.phone{margin:0}
+.phone .poster{display:block;width:100%;height:auto;border:1px solid var(--edge);border-radius:36px;background:#F5F1E2}
+.shots{display:flex;gap:8px;margin-top:14px;overflow-x:auto;padding-bottom:6px;scrollbar-width:thin}
+.shotbtn{flex:0 0 auto;display:grid;gap:6px;justify-items:center;padding:6px;border:1px solid var(--edge);border-radius:14px;background:var(--surf);color:var(--soft);font:600 11px/1 var(--sans);cursor:pointer}
+.shotbtn img{display:block;width:34px;height:auto;border-radius:6px;opacity:.55}
+.shotbtn[aria-pressed=true]{border-color:var(--olive);color:var(--fg)}
+.shotbtn[aria-pressed=true] img{opacity:1}
+.shotbtn:hover img{opacity:.85}
+.livetrap{display:grid;gap:8px;justify-items:center;margin-top:18px}
+.livetrap .note{margin:0;text-align:center}
+.fdlive{display:block;width:100%;height:700px;border:1px solid var(--edge);border-radius:36px;background:#F5F1E2}
+/* Once the live app is up, the poster it replaces is gone, not stacked above it. */
+.demo.is-live .phone .poster{display:none}
