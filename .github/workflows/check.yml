@@ -57,6 +57,9 @@ jobs:
           if [ -n "${{ secrets.APP_TOKEN }}" ]; then
             git clone --depth 1 --branch web-target-experiment \
               "https://x-access-token:${{ secrets.APP_TOKEN }}@github.com/${{ vars.APP_REPO }}.git" ../app
+            # Drift's generated code is gitignored, so a fresh clone cannot build
+            # until codegen has run.
+            ( cd ../app && flutter pub get && dart run build_runner build --delete-conflicting-outputs )
             sh tools/build-demo.sh --app ../app
             python3 build.py
           else

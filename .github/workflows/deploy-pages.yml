@@ -57,6 +57,10 @@ jobs:
         run: |
           git clone --depth 1 --branch web-target-experiment \
             "https://x-access-token:${{ secrets.APP_TOKEN }}@github.com/${{ vars.APP_REPO }}.git" ../app
+          # Drift's generated code is gitignored, so a fresh clone has no
+          # app_database.g.dart and the build cannot resolve the tables. Codegen
+          # has to run before build_demo, exactly as it does locally.
+          ( cd ../app && flutter pub get && dart run build_runner build --delete-conflicting-outputs )
           sh tools/build-demo.sh --app ../app
 
       - name: Build site
