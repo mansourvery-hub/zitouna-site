@@ -26,8 +26,8 @@ function seedParcel() {
       { ...ripeness({ g: 18, t: 20, p: 8, b: 4 }), date: 'Aug' },
     ],
     harvest: [
-      { date: `${Y - 1}-11-12`, kg: 250, note: 'East row' },
-      { date: `${Y - 1}-11-19`, kg: 180 },
+      { date: `${Y - 1}-11-12`, kg: 380, note: 'East row' },
+      { date: `${Y - 1}-11-19`, kg: 280 },
       { date: `${Y - 2}-11-10`, kg: 310 },
       { date: `${Y - 2}-11-17`, kg: 220 },
     ],
@@ -56,11 +56,11 @@ const views = {
   trees() {
     const cards = st.parcels.map((p) => {
       const l = lastCheck(p);
-      return `<section class="card big"><div class="row"><span class="lbl">${p.name}</span>${l ? chip(l.stage) : '<span class="dash"></span>'}</div>${gauge(l ? l.index : 0, true)}
-<p class="cap">${p.variety} · ${fill(UI.copy.treesCountLabel, { count: p.trees })}</p>
-<button class="save open" data-p="${p.id}">${UI.copy.myTrees}</button></section>`;
+      return `<button class="pcel open" data-p="${p.id}"><span class="prow">${l ? chip(l.stage) : '<span class="dash"></span>'}<span class="chev" aria-hidden="true">›</span></span>
+<p class="pn">${p.name}</p><p class="ps">${p.variety} · ${p.trees} trees</p>${gauge(l ? l.index : 0, true)}</button>`;
     }).join('');
-    return `<section class="card"><p class="t">${UI.copy.myTrees}</p><p class="cap">${st.parcels.reduce((s, p) => s + p.trees, 0)} trees</p></section>${cards}
+    return `<div class="thead"><div><b>${UI.copy.myTrees}</b><span>${st.parcels.reduce((s, p) => s + p.trees, 0)} trees across ${st.parcels.length} parcels</span></div>
+<div class="acts"><button class="act" id="go-set" aria-label="${UI.copy.settingsTitle}">⚙</button></div></div>${cards}
 <button class="save" id="addp">${UI.copy.addParcel}</button>`;
   },
   overview() {
@@ -76,7 +76,7 @@ const views = {
 <section class="card"><p class="t">${UI.copy.alternateBearingTitle}</p><p>${forecast}</p></section>`;
   },
   ripeness() {
-    return `<section class="card hint"><p class="t">${UI.copy.cameraGuide}</p></section><section class="card big"><div id="g" aria-hidden="true"></div><div class="read" aria-hidden="true"><span id="chip"></span><p class="idx"><b id="idx"></b> <small>/ 7.00</small></p></div><p class="sr" id="sum" role="status"></p></section>
+    return `<section class="card hint"><div class="hintrow"><span class="ic" aria-hidden="true">◉</span><p class="t">${UI.copy.cameraGuide}</p><button class="x" id="hint-x" aria-label="Dismiss">×</button></div></section><section class="card big"><div id="g" aria-hidden="true"></div><div class="read" aria-hidden="true"><span id="chip"></span><p class="idx"><b id="idx"></b> <small>/ 7.00</small></p></div><p class="sr" id="sum" role="status"></p></section>
 ${BUCKETS.map(([k, n, s]) => `<div class="ctr"><i class="dot d${s}"></i><span class="cl">${n}</span><button class="rb" data-k="${k}" data-d="-1" aria-label="Remove one ${n} olive">−</button><output id="n-${k}" aria-label="${n} count">0</output><button class="rb" data-k="${k}" data-d="1" aria-label="Add one ${n} olive">+</button><button class="rb five" data-k="${k}" data-d="5" aria-label="Add five ${n} olives">+5</button></div>`).join('')}
 <button class="save" id="save">${UI.copy.saveRipenessCheck}</button>`;
   },
@@ -144,12 +144,12 @@ function toast(m) { const t = $('#toast'); t.textContent = ''; setTimeout(() => 
 const TAB_KEYS = ['overview', 'ripeness', 'harvest', 'mill', 'years'];
 function shell(title, sub, body) {
   const tabs = TABS.map(([k, l]) => `<button role="tab" id="t-${k}" aria-controls="p" data-t="${k}" aria-selected="${st.tab === k}" tabindex="${st.tab === k ? 0 : -1}">${l}</button>`).join('');
-  return `<div class="app" role="group" aria-label="Zitouna app demo"><header class="ah"><p class="nm">${title}</p><p>${sub}</p></header>
+  return `<div class="app" role="group" aria-label="Zitouna app demo"><header class="abar"><button class="bk" id="bk-trees" aria-label="Back to ${UI.copy.myTrees}">‹</button><div class="tt"><b>${title}</b><span>${sub}</span></div></header>
 <div class="tabs" role="tablist" aria-label="Parcel sections">${tabs}</div>
 <div id="p" role="tabpanel" tabindex="0">${body}</div><div class="toast" id="toast" role="status"></div></div>`;
 }
 function shellTrees(body) {
-  return `<div class="app" role="group" aria-label="Zitouna app demo"><header class="ah"><p class="nm">${UI.copy.myTrees}</p></header>
+  return `<div class="app" role="group" aria-label="Zitouna app demo">
 <div id="p" role="tabpanel" tabindex="0">${body}</div><div class="toast" id="toast" role="status"></div></div>`;
 }
 function render() {
@@ -157,6 +157,8 @@ function render() {
   if (st.screen === 'trees') {
     root.innerHTML = shellTrees(views.trees());
     root.querySelectorAll('.open').forEach((b) => b.onclick = () => { st.parcel = b.dataset.p; st.screen = 'parcel'; st.tab = 'overview'; render(); });
+    const gs = $('#go-set');
+    if (gs) gs.onclick = () => { st.screen = 'settings'; render(); };
     const add = $('#addp');
     if (add) add.onclick = () => {
       const n = st.parcels.length + 1;
@@ -166,30 +168,25 @@ function render() {
     return;
   }
   if (st.screen === 'settings') {
-    root.innerHTML = shellTrees(views.settings());
+    root.innerHTML = `<div class="app" role="group" aria-label="Zitouna app demo"><header class="abar"><button class="bk" id="bk-trees" aria-label="Back to ${UI.copy.myTrees}">‹</button><div class="tt"><b>${UI.copy.settingsTitle}</b></div></header><div id="p" role="tabpanel" tabindex="0">${views.settings()}</div><div class="toast" id="toast" role="status"></div></div>`;
     root.querySelectorAll('[data-u]').forEach((b) => b.onclick = () => { st.unit = b.dataset.u; render(); });
-    backButton(root);
+    $('#bk-trees').onclick = () => { st.screen = 'trees'; render(); };
     return;
   }
   const p = P();
   root.innerHTML = shell(p.name, `${p.variety} · ${p.trees} trees`, views[st.tab]());
   root.querySelectorAll('[role=tab]').forEach((b) => { b.onclick = () => { st.tab = b.dataset.t; render(); }; });
   bindTab(p);
-  backButton(root, true);
+  backButton(root);
 }
-function backButton(root, parcel = false) {
-  const bar = document.createElement('div');
-  bar.className = 'row';
-  bar.innerHTML = `<button class="rb" id="bk-trees">← ${UI.copy.myTrees}</button>` +
-    (parcel ? `<button class="rb" id="bk-set">${UI.copy.settingsTitle}</button>` : '');
-  root.querySelector('.app').prepend(bar);
+function backButton(root) {
   $('#bk-trees').onclick = () => { st.screen = 'trees'; render(); };
-  const s = $('#bk-set');
-  if (s) s.onclick = () => { st.screen = 'settings'; render(); };
 }
 function bindTab(p) {
   const panel = $('#p');
   if (st.tab === 'ripeness') {
+    const hx = $('#hint-x');
+    if (hx) hx.onclick = () => { const h = hx.closest('.card.hint'); if (h) h.remove(); };
     paintRipeness();
     panel.querySelectorAll('.rb').forEach((b) => b.addEventListener('click', () => { if (b.getAttribute('aria-disabled') === 'true') return; const k = b.dataset.k; p.c[k] = Math.max(0, p.c[k] + +b.dataset.d); paintRipeness(); }));
     $('#save').onclick = () => { const r = ripeness(p.c); if (!r.n) return; p.checks.push({ ...r, date: today() }); toast(UI.copy.ripenessSaved); render(); };

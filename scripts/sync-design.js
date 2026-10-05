@@ -159,7 +159,22 @@ const radii = ['radiusLgHero', 'radiusLg', 'radiusMd', 'radiusSm', 'radiusPill']
   .map((f) => `--r-${kebab(f)}:${radius(themeSrc, f, THEME_SRC)}px`)
   .join(';');
 
+// Static wash colors (same in both themes): the parcel-card gradient text.
+const washRe = /static const Color welcomeWash(\w+) = Color\(0x[A-Fa-f0-9]{2}([A-Fa-f0-9]{6})\)/g;
+let washVars = '';
+{
+  const seen = new Set();
+  for (const m of themeSrc.matchAll(washRe)) {
+    if (seen.has(m[1])) continue;
+    seen.add(m[1]);
+    washVars += `--wash${m[1]}:#${m[2]};`;
+  }
+  if (!washVars.includes('--washText')) throw new Error('zitouna_theme.dart: welcomeWashText not found');
+}
+
 const tokens = `${BANNER(THEME_SRC)}
+/* Wash colors: static consts, identical in both themes (parcel-card text). */
+.app{${washVars}}
 /* Light theme: the app's ZitounaTheme.light, verbatim. */
 .app{${block('light')};${radii}}
 /* Dark theme: the app's ZitounaTheme.dark, verbatim. */

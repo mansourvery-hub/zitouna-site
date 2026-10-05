@@ -217,8 +217,7 @@ test.describe('Full demo navigation (My Trees, all tabs, settings)', () => {
   });
 
   test('Settings: switching units changes displayed weights', async ({ page }) => {
-    await openParcel(page);
-    await page.locator('#demo #bk-set').click();
+    await page.locator('#demo #go-set').click();
     await page.waitForTimeout(150);
     await page.locator('#demo [data-u=q]').click();
     await page.waitForTimeout(150);
