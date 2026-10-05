@@ -64,7 +64,9 @@ html = re.sub(r'(href|src)="(/[^"]*)"', prefix_asset, html)
 if faces: (DIST / "fonts.css").write_text("\n".join(faces))
 css = re.sub(r"\s+", " ", re.sub(r"/\*.*?\*/", "", (SRC / "styles.css").read_text(), flags=re.S))
 (DIST / "styles.css").write_text(css)
-for f in ("main.js", "logic.js", "gauge.js", "demo.js", "demo.css", "demo-tokens.css", "app-ui.js", "favicon.png"): shutil.copy(SRC / f, DIST / f)
+for f in ("main.js", "logic.js", "favicon.png"): shutil.copy(SRC / f, DIST / f)
+
+if (SRC / "flutter-demo").exists(): shutil.copytree(SRC / "flutter-demo", DIST / "flutter-demo", dirs_exist_ok=True)
 
 # For GitHub Pages subpath, ensure assets at BASE_PATH (dist/BASE_PATH.lstrip("/"))
 # Since GitHub Pages serves dist/ at BASE_PATH, /BASE_PATH/... maps to dist/BASE_PATH.lstrip("/")/
@@ -72,8 +74,9 @@ if BASE_PATH:
     base_dir = DIST / BASE_PATH.lstrip("/")
     (base_dir / "fonts").mkdir(parents=True, exist_ok=True)
     for f in (SRC / "fonts").glob("*.woff2"): shutil.copy(f, base_dir / "fonts" / f.name)
-    for f in ("main.js", "logic.js", "gauge.js", "demo.js", "demo.css", "demo-tokens.css", "app-ui.js", "favicon.png"):
+    for f in ("main.js", "logic.js", "favicon.png"):
         shutil.copy(SRC / f, base_dir / f)
+    if (SRC / "flutter-demo").exists(): shutil.copytree(SRC / "flutter-demo", base_dir / "flutter-demo", dirs_exist_ok=True)
     # Copy generated/root files (after CSS generation)
     for f in ["styles.css", "fonts.css", "favicon.png", "og.png"]:
         if (DIST / f).exists():
@@ -93,12 +96,33 @@ if BASE_PATH:
     (base_dir / ".nojekyll").write_text("")
 
 
+# The Flutter scaffold emits <base href="/">, which breaks every relative asset URL when the
+# demo is served from a subpath (the iframe, and GitHub Pages project sites). Rewrite it per
+# deploy target: build.py already knows BASE_PATH.
+for _fdemo_index in [DIST / "flutter-demo" / "index.html", DIST / "zitouna-site" / "flutter-demo" / "index.html"]:
+    if _fdemo_index.exists():
+        _t = _fdemo_index.read_text().replace('<base href="/">', f'<base href="{prefix("/flutter-demo/")}">', 1)
+        _fdemo_index.write_text(_t)
+
 # 3. SEO and security files
 S = cfg["SITE"]
 (DIST / "robots.txt").write_text(f"User-agent: *\nAllow: /\nSitemap: {S}/sitemap.xml\n")
 (DIST / "sitemap.xml").write_text(f'<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url><loc>{S}/</loc></url></urlset>\n')
-CSP = "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; font-src 'self'; connect-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; upgrade-insecure-requests"
-(DIST / "_headers").write_text(f"""/*
+CSP = "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; font-src 'self'; connect-src 'none'; base-uri 'none'; form-action 'none'; frame-src 'self'; frame-ancestors 'none'; upgrade-insecure-requests"
+# The Flutter demo is framed by our own page, so its paths must allow it.
+# Specific paths first: hosts apply the first matching rule.
+# The framed app is our own compiled Dart (same origin), but the Flutter engine needs:
+# wasm-unsafe-eval (CanvasKit WASM compile), unsafe-inline styles (engine-injected),
+# connect-src 'self' (FontManifest.json, canvaskit.wasm fetch), base-uri 'self'.
+# CanvasKit itself is bundled locally (FLUTTER_WEB_CANVASKIT_URL) — no third-party requests.
+CSP_FRAMED = ("default-src 'none'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; "
+              "img-src 'self' data:; font-src 'self'; connect-src 'self'; base-uri 'self'; "
+              "form-action 'none'; frame-ancestors 'self'")
+(DIST / "_headers").write_text(f"""/flutter-demo/*
+  Content-Security-Policy: {CSP_FRAMED}
+/zitouna-site/flutter-demo/*
+  Content-Security-Policy: {CSP_FRAMED}
+/*
   Content-Security-Policy: {CSP}
   Strict-Transport-Security: max-age=31536000; includeSubDomains
   X-Content-Type-Options: nosniff
@@ -171,7 +195,7 @@ if any(not (a or t) for a, t in p.names): errs.append("link or button without an
 if 'lang="en"' not in html: errs.append("missing lang")
 try: json.loads(p.ldtxt)
 except Exception as e: errs.append(f"JSON-LD invalid: {e}")
-js = "".join((SRC / n).read_text() for n in ("main.js", "logic.js", "gauge.js", "demo.js"))
+js = "".join((SRC / n).read_text() for n in ("main.js", "logic.js"))
 for bad in ("document.cookie", "localStorage", "sessionStorage", "fetch(", "XMLHttpRequest", "sendBeacon"):
     if bad in js: errs.append(f"JS uses {bad}")
 print("Warnings:", *warn, sep="\n  - ") if warn else print("No warnings")

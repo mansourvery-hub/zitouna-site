@@ -34,13 +34,23 @@ Serve over HTTPS (the CSP uses upgrade-insecure-requests and HSTS is set).
 
 Not claimed: iOS, camera or photo ripeness, weather, map, source code or licence, store availability.
 
-## Demo (stage 4)
-`src/demo.js` + `src/demo.css` render a parcel screen: Overview, Ripeness and Mill tabs.
-Rules: `logic.js` (ported from ripeness_calculator.dart and rendement_calculator.dart).
-Gauge geometry (340x176 full, 300x140 mini, radii, ticks, marker): ripeness_arc_gauge.dart.
-Colours: both ZitounaTheme palettes in zitouna_theme.dart, chosen by the device theme.
-Strings: app_en.arb (Check Ripeness, Save Ripeness Check, Extraction Rendement, and others).
-Differences from the app are listed on the page, under the demo. Keep that list current as the app changes.
+## Demo: the app itself, running in the page
+
+The demo is not a translation. It is the app's real Flutter widgets and real business logic,
+compiled to Web (`flutter build web --target=lib/main_web_demo.dart --no-web-resources-cdn`)
+and framed by the page in `src/flutter-demo/`.
+
+- `Zitouna/lib/main_web_demo.dart` (on the app repo's `web-target-experiment` branch) renders
+  the actual `RipenessArcGauge`, `StagePill` and `ZitounaTheme`, driven by the actual
+  `RipenessCalculator` and `RendementCalculator`. No Drift, no parcel hub — the demo entry
+  only mounts what renders without a live database.
+- Rebuild with a newer Flutter and copy `build/web` over `src/flutter-demo/`; `build.py`
+  rewrites the Flutter `<base href>` per deploy target and ships it.
+- `frame-ancestors 'self'` is allowed on the `/flutter-demo/*` paths only (see `_headers`);
+  the top page keeps `frame-ancestors 'none'`. CanvasKit is bundled locally
+  (`--no-web-resources-cdn`), so the framed app makes zero third-party requests.
+- `src/logic.js` remains for the static mill section (`src/main.js`) and is pinned by
+  `tests/logic.test.mjs`.
 
 ## Checks (stage 5)
     sh check.sh      # build + static checks + unit tests + contrast; non-zero exit on failure

@@ -49,3 +49,4 @@ footer{margin-top:96px;border-top:1px solid currentColor;padding:36px 0 56px;fon
 @media(max-width:820px){.how .w,.mill .w,.end .w,.pr{grid-template-columns:1fr}.how h2{position:static}.how li{grid-template-columns:48px 1fr}.logo span{display:none}}
 @media(prefers-reduced-motion:reduce){html,body,header,.btn{transition:none}html{scroll-behavior:auto}}
 #dl{margin-top:44px}
+.fdemo{width:100%;max-width:420px;height:700px;margin:48px auto 0;display:block;border:1px solid var(--edge);border-radius:36px;background:#F5F1E2}
