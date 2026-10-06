@@ -1,3 +1,7 @@
+<!-- SUPERSEDED. This is an early README kept as history. It describes a build
+     step (`zitouna-dist.zip`) and a project layout that no longer exist. The real
+     documentation is the repository README. -->
+
 # Zitouna site (direction B, "the page ripens")
 
 Static, no dependencies, no cookies, no analytics, no third-party requests.
@@ -34,43 +38,13 @@ Serve over HTTPS (the CSP uses upgrade-insecure-requests and HSTS is set).
 
 Not claimed: iOS, camera or photo ripeness, weather, map, source code or licence, store availability.
 
-## Docs
-
-`docs/` holds historical notes — the original handoff, a superseded engineering
-write-up kept for its measurements, an early README draft. None of it is
-load-bearing; the sections below are the working documentation.
-
-## Demo: generated from the app, never hand-written
-
-The demo is the real Flutter app, and the site is generated from it. One command
-is the whole update path:
-
-```sh
-sh tools/build-demo.sh            # build the app, capture screens, vendor it
-```
-
-It runs `flutter build web --target=lib/main_web_demo.dart --release
---no-web-resources-cdn` in the app repo (branch `web-target-experiment`), then
-screenshots the running app's screens as WebP posters. The page shows those
-posters in a phone frame, and a "Try it live" tap loads the actual app in an
-iframe. Change a colour, a label or a menu in the app, re-run the script, and the
-site follows.
-
-Nothing on the page is hand-translated. The previous HTML/CSS/JS demo was, and
-that is why it drifted from the app: every divergence was a second copy to
-maintain. Its files (`demo.js`, `gauge.js`, `demo.css`, `demo-tokens.css`,
-`app-ui.js`, `design/app-ui.json`, the `sync-*.js` generators, the parity spec)
-are gone.
-
-- `tools/capture-demo.mjs` drives the real app through Flutter's semantics tree
-  and refuses to write a poster it cannot confirm, so renaming a screen fails the
-  build instead of quietly shipping a stale screenshot.
-- The posters cost 273KB. The live build is ~4MB compressed and is only fetched
-  when someone taps, prefetched at low priority as the demo approaches the
-  viewport. First paint never waits on the engine -- asserted by a test that
-  aborts every engine request and checks the page still works.
-- `--no-web-resources-cdn` is required, not optional: it keeps CanvasKit and the
-  fonts on our own origin, which is what lets the footer promise hold.
+## Demo (stage 4)
+`src/demo.js` + `src/demo.css` render a parcel screen: Overview, Ripeness and Mill tabs.
+Rules: `logic.js` (ported from ripeness_calculator.dart and rendement_calculator.dart).
+Gauge geometry (340x176 full, 300x140 mini, radii, ticks, marker): ripeness_arc_gauge.dart.
+Colours: both ZitounaTheme palettes in zitouna_theme.dart, chosen by the device theme.
+Strings: app_en.arb (Check Ripeness, Save Ripeness Check, Extraction Rendement, and others).
+Differences from the app are listed on the page, under the demo. Keep that list current as the app changes.
 
 ## Checks (stage 5)
     sh check.sh      # build + static checks + unit tests + contrast; non-zero exit on failure
